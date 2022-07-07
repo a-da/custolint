@@ -1,3 +1,16 @@
+Motivation
+==========
+
+When you have a big old code base with thousends of lines, you can not just include a linter and enable 100% checks.
+
+.. image:: https://www.meme-arsenal.com/memes/fb7dcfc4064d5b75e281d354590b13a5.jpg
+  :width: 400
+  :alt: You cannot just take and (Boromir meme)
+  
+You just enable 1% of the checks, which is verry sad for a decent developer. 
+
+There is a better solution for this ! Welcome **custolint** - custom linter.
+
 Idea
 ====
 
