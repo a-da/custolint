@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 
 import custolint
+import custolint.git
 
 
 @pytest.fixture(autouse=True, scope='session')
@@ -22,10 +23,10 @@ def cd_into_root():
     )
 ])
 def test_extract_email_and_date_from_blame(blame: str, email: str, date: str):
-    assert custolint.extract_email_and_date_from_blame(blame) == ('gus.fring@some-domain.com', '2021-09-06')
+    assert custolint.git._extract_email_and_date_from_blame(blame) == ('gus.fring@some-domain.com', '2021-09-06')
 
 
-@mock.patch.object(custolint.bash, "bash", side_effect=[mock.Mock(stdout="""
+@mock.patch.object(custolint.git.bash, "bash", side_effect=[mock.Mock(stdout="""
 --- a/care/of/red/potato.py
 +++ b/care/of/red/potato.py
 @@ -310 +310 @@ def get_audit_log(
@@ -45,7 +46,7 @@ index 000000000..e0ae31a74
 +++ b/care/of/yellow/banana.py
 @@ -0,0 +1,146 @@
 """.encode())])
-@mock.patch.object(custolint, "blame", side_effect=[
+@mock.patch.object(custolint.git, "_blame", side_effect=[
     [('care/of/red/potato.py', 310, 'gus.fring@some-domain.com', '2021-06-25')],
     [('care/of/yellow/banana.py', 1, 'lalo.salamanca@@some-domain.com', '2022-03-07'),
      ('care/of/yellow/banana.py', 2, 'lalo.salamanca@@some-domain.com', '2022-03-07'),
@@ -53,7 +54,7 @@ index 000000000..e0ae31a74
 
 ])
 def test_git_changes(_, _2):
-    assert custolint.git_changes(main_branch="develop") == {
+    assert custolint.git.changes(main_branch="develop") == {
         'care/of/red/potato.py': {
             310: {'date': '2021-06-25', 'email': 'gus.fring@some-domain.com'}},
         'care/of/yellow/banana.py': {
@@ -92,9 +93,9 @@ def test_git_changes(_, _2):
 ])
 def test_blame(file_name: str, the_line_numbers: List[str], bash_stdout: str, expect):
     for the_line_number in the_line_numbers:
-        with mock.patch.object(custolint.bash, "bash", side_effect=[mock.Mock(
+        with mock.patch.object(custolint.git.bash, "bash", side_effect=[mock.Mock(
                 stdout=bash_stdout.encode(),
                 stderr='',
         )]):
 
-            assert list(custolint.blame(the_line_number, file_name)) == expect
+            assert list(custolint.git._blame(the_line_number, file_name)) == expect

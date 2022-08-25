@@ -1,26 +1,30 @@
+=========================
+custolint - custom linter
+=========================
+
 Motivation
 ==========
 
-When you have a big old code base with thousends of lines, you can not just include a linter and enable 100% checks.
+When you have a big old code base with thousands of lines, you can not just include a linter and enable 100% checks.
 
 .. image:: https://www.meme-arsenal.com/memes/fb7dcfc4064d5b75e281d354590b13a5.jpg
   :width: 400
   :alt: You cannot just take and (Boromir meme)
   
-You just enable 1% of the checks, which is verry sad for a decent developer. 
+Instead, you just enable 1% of the checks, which is very sad for a decent developer.
 
 There is a better solution for this ! Welcome **custolint** - custom linter.
 
 Idea
 ====
 
-1. Detect affected files
+1. Detect affected files.
 
-2. Run the tool with all available feature on only on changed affected files or parse log/result of the linter tool.
+2. Run the tool with all available feature enables only on changed affected files or parse log/result of the linter tool.
 
 3. Match changed code with the linters output, and consider only the match lines as failed lint criteria.
 
-4. Fail/Report the build.
+4. Fail or Report the build.
 
 
 Install
@@ -30,7 +34,7 @@ From pip
 
 .. code-block:: bash
 
-    # TODO: not implemented yet
+    # TODO: not deployed yet into PIP
     pip install custolint
 
 From repo
@@ -45,8 +49,7 @@ For development
 .. code-block:: bash
 
     git clone https://github.com/a-da/custolint.git
-    pip install -e .
-    pip install -r requirements.dev
+    pip install -e .[dev]
 
 How to run:
 ===========
@@ -59,14 +62,14 @@ How to run:
     # TODO: autodetect main branch
     MAIN_BRANCH=JIRA-14407-care2-merge python custolint mypy
 
-    # code smell checking with pylint implemented
+    # code smell checking with pylint
     custolint pylint
 
-    # code smell checking with flake8 NOT implemented yet
+    # code smell checking with flake8
     custolint flake8
 
-    # 100% coverage checking for new commits NOT implemented yet
-    pytest
+    # 100% coverage checking for new commits implemented
+    coverage run -m pytest
     custolint coverage
 
 
@@ -91,9 +94,15 @@ Halt on N messages
 How to develop:
 ===============
 
+First setup
+
+.. code-block:: bash
+
+    # clone
+    pip install -e .[dev]
+
 Run pytests
 
 .. code-block:: bash
 
-    cd "${CUSTOLINT_REPO}"
-    pytest test_custolint.py
+    pytest tests
