@@ -34,21 +34,24 @@ From pip
 
 .. code-block:: bash
 
-    # TODO: not deployed yet into PIP
+    $ make install
     pip install custolint
+    Collecting custolint
+      Downloading custolint-...-py3-none-any.whl (8.4 kB)
+    Collecting bash...
+    Installing collected packages: ...
+    Successfully installed ... custolint-...
 
 From repo
 
 .. code-block:: bash
 
     git clone https://github.com/a-da/custolint.git
+
+    # prod
     pip install .
 
-For development
-
-.. code-block:: bash
-
-    git clone https://github.com/a-da/custolint.git
+    # dev
     pip install -e .[dev]
 
 How to run:
@@ -57,6 +60,9 @@ How to run:
 .. code-block:: bash
 
     cd "${YOUR_CODE}/"
+
+    # when MAIN_BRANCH is develop
+    python custolint mypy
 
     # typechecking with mypy implemented, set main branch, default is master
     # TODO: autodetect main branch
@@ -90,19 +96,7 @@ Halt on N messages
     # TODO: not implemented yet
     custolint --halt-on-N-messages=5 mypy
 
+How to contribute:
+==================
 
-How to develop:
-===============
-
-First setup
-
-.. code-block:: bash
-
-    # clone
-    pip install -e .[dev]
-
-Run pytests
-
-.. code-block:: bash
-
-    pytest tests
+For developers and contributors see the instruction here `<docs/for_developers.rst>`_.
