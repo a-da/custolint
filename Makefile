@@ -4,7 +4,7 @@ update_pip:
 wheel: clean
 	python -m build . --wheel
 
-deploy_to_pypy: wheel
+deploy_to_pypy: validate wheel
 	twine upload dist/*
 
 clean:
@@ -17,8 +17,12 @@ install_dev:
 	pip install -e .[dev,deploy_to_pip]
 
 validate:
-	coverage run -m pytest
-	MAIN_BRANCH='master' custolint coverage .
+	rm -f .coverage
+	coverage run --branch -m pytest
+	MAIN_BRANCH='master' custolint coverage .coverage
+	echo
 	MAIN_BRANCH='master' custolint pylint
+	echo
 	MAIN_BRANCH='master' custolint flake8
+	echo
 	MAIN_BRANCH='master' custolint mypy

@@ -81,4 +81,5 @@ def changes(main_branch: str) -> Dict[str, List[str]]:
                     'date': date
                 }
 
+    LOG.info("Git diff detected %r filed affected", len(files))
     return files

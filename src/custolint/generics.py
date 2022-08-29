@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+import builtins
 import re
 import logging
 
@@ -15,7 +16,7 @@ def output(msg: str, *args) -> None:
     if TO_LOG:
         LOG.info(msg, *args)
     else:
-        print(msg % args)
+        builtins.print(msg % args)
 
 
 def do_filter(pylint_line: str) -> bool:

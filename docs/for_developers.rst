@@ -21,11 +21,11 @@
 .. code-block:: bash
 
     $ make validate
-    coverage run -m pytest
+    coverage run --branch -m pytest
     ...
     tests/test_custolint.py .... [100%]
 
-    MAIN_BRANCH='master' custolint coverage .
+    MAIN_BRANCH='master' custolint coverage .coverage
     ...
     MAIN_BRANCH='master' custolint pylint
     ...

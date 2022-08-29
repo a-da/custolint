@@ -75,8 +75,8 @@ How to run:
     custolint flake8
 
     # 100% coverage checking for new commits implemented
-    coverage run -m pytest
-    custolint coverage
+    coverage run --branch -m pytest
+    custolint coverage .coverage
 
 
 Config filter

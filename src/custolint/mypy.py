@@ -31,9 +31,10 @@ def compare_with_main_branch() -> None:
     has_found_something = False
 
     # TODO validate cmd before pass
-    execute_command = (
-            os.getenv("MYPY_CMD") or "mypy --strict --show-error-codes @{tmp_path}"
-    ).format(tmp_path=tmp_path)
+    config_argument = "--config-file=config.d/mypy.ini" if Path("config.d/mypy.ini").exists() else ""
+    command = " ".join(("mypy", config_argument or "--strict --show-error-codes", "@{tmp_path}"))
+
+    execute_command = command.format(tmp_path=tmp_path)
 
     LOG.info("execute command %r", execute_command)
     command = bash.bash(execute_command)
@@ -80,7 +81,7 @@ def compare_with_main_branch() -> None:
             if not has_found_something and re.search(r"Found \d+ errors in \d+ file", mypy_line):
                 continue
 
-            print("something wrong ", len(fields), mypy_line, fields)
+            LOG.warning("something wrong %r %r %r", len(fields), mypy_line, fields)
 
     if not has_found_something:
-        print("::Dry and Clean::")
+        LOG.info("::Dry and Clean::")
