@@ -1,3 +1,6 @@
+"""
+Put here some global configuration or variables
+"""
 import importlib.metadata
 import logging
 import os

@@ -3,7 +3,7 @@ custolint - custom linter
 =========================
 
 Motivation
-==========
+----------
 
 When you have a big old code base with thousands of lines, you can not just include a linter and enable 100% checks.
 
@@ -13,90 +13,55 @@ When you have a big old code base with thousands of lines, you can not just incl
   
 Instead, you just enable 1% of the checks, which is very sad for a decent developer.
 
+*Could you just enable to only check your changes ?* **YES**, you can.
+
 There is a better solution for this ! Welcome **custolint** - custom linter.
 
 Idea
-====
+----
 
-1. Detect affected files.
+TODO: draw a diagram.
+Given we have a project alike custolint, where we:
 
-2. Run the tool with all available feature enables only on changed affected files or parse log/result of the linter tool.
+- changed a the function ``custolint/git.py:_blame``
+- added a new function ``custolint/generics.py:filer_output``
+
+.. code-block:: bash
+
+    $ tree
+    .
+    |-- config.d
+    |   |-- mypy.ini
+    |   `-- pylintrc
+    |-- mypy.ini
+    |-- pyproject.toml
+    |-- setup.cfg
+    |-- src
+    |   |-- custolint
+    |   |   |-- __init__.py
+    |   |   |-- cli.py
+    |   |   |-- coverage.py
+    |   |   |-- flake8.py
+    |   |   |-- generics.py
+    |   |   |-- git.py
+    |   |   |-- mypy.py
+    |   |   |-- pylint.py
+    |   |   `-- typing.py
+    |-- tests
+    |   `-- test_custolint.py
+
+1. We have to detect affected files with ``git diff`` and ``git blame``
+
+- ``custolint/git.py``
+- ``custolint/generics.py``
+
+2. Run the linter tool (pylint, flake8, mypy, coverage ...) with all available feature enables (the configuration have to be placed into  ``config.d/`` folder) only on changed affected files or parse log/result of the linter tool.
 
 3. Match changed code with the linters output, and consider only the match lines as failed lint criteria.
+
+   It have to detect that ``custolint/generics.py:filer_output`` need unitest for coverage
+and ``custolint/git.py:_blame`` introduce a mypy typing issue.
 
 4. Fail or Report the build.
 
 
-Install
-=======
-
-From pip
-
-.. code-block:: bash
-
-    $ make install
-    pip install custolint
-    Collecting custolint
-      Downloading custolint-...-py3-none-any.whl (8.4 kB)
-    Collecting bash...
-    Installing collected packages: ...
-    Successfully installed ... custolint-...
-
-From repo
-
-.. code-block:: bash
-
-    git clone https://github.com/a-da/custolint.git
-
-    # prod
-    pip install .
-
-    # dev
-    pip install -e .[dev]
-
-How to run:
-===========
-
-.. code-block:: bash
-
-    cd "${YOUR_CODE}/"
-
-    # when MAIN_BRANCH is develop
-    python custolint mypy
-
-    # typechecking with mypy implemented, set main branch, default is master
-    # TODO: autodetect main branch
-    MAIN_BRANCH=JIRA-14407-care2-merge python custolint mypy
-
-    # code smell checking with pylint
-    custolint pylint
-
-    # code smell checking with flake8
-    custolint flake8
-
-    # 100% coverage checking for new commits implemented
-    coverage run --branch -m pytest
-    custolint coverage .coverage
-
-
-Config filter
-
-.. code-block:: bash
-
-    # TODO: not implemented yet
-    custolint \
-        --contributor=Josh,Andrei,Joanna \
-        --skip-contributor=Ben \
-            mypy
-
-Halt on N messages
-
-.. code-block:: bash
-
-    # TODO: not implemented yet
-    custolint --halt-on-N-messages=5 mypy
-
-How to contribute:
-==================
-
-For developers and contributors see the instruction here `<docs/for_developers.rst>`_.

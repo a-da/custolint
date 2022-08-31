@@ -1,30 +1,42 @@
+"""
+Command line interface API
+"""
 import sys
 
-from . import mypy
-from . import pylint
-from . import flake8
-from . import coverage
+from . import coverage, flake8, generics, mypy, pylint
 
 
 def cli(*args: str) -> None:
+    """
+    CLI entry point
+    """
     if not args:
-        args = sys.argv
+        args = tuple(sys.argv)
 
     if len(args) < 2:
         sys.exit("require one of argument: mypy, pylint, flake8, coverage")
 
     command = args[1]
     if command == "mypy":
-        mypy.compare_with_main_branch()
-    elif command == "pylint":
-        pylint.compare_with_main_branch()
-    elif command == "flake8":
-        flake8.compare_with_main_branch()
-    elif command == "coverage":
+        generics.filer_output(mypy.compare_with_main_branch())
+        return
+
+    if command == "pylint":
+        generics.filer_output(pylint.compare_with_main_branch())
+        return
+
+    if command == "flake8":
+        generics.filer_output(flake8.compare_with_main_branch())
+        return
+
+    if command == "coverage":
         if len(args) < 3:
-            sys.exit('include path for coverage is missing')
+            sys.exit('Include path for coverage is missing, usually it is `.coverage`')
 
         coverage_file_location = args[2]
-        coverage.compare_with_main_branch(coverage_file_location)
-    else:
-        sys.exit(f'command {command!r} not implemented')
+        generics.group_by_email_and_file_name(
+            coverage.compare_with_main_branch(coverage_file_location)
+        )
+        return
+
+    sys.exit(f'command {command!r} not implemented')
