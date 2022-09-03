@@ -1,0 +1,5 @@
+[run]
+source = "src/custolint"
+
+[report]
+show_missing = True

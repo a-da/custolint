@@ -1,10 +1,20 @@
 """
 `Flake8 <https://github.com/PyCQA/flake8>`_ integration.
 """
-from typing import Iterator
+from typing import Dict, Iterator
+
 from pathlib import Path
 
 from . import generics, typing
+
+
+# pylint: disable=unused-argument
+def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, str]) -> bool:
+    """
+    Return True if we want to skip the check else False if we want this check
+    """
+    return False
+# pylint: enable=unused-argument
 
 
 def compare_with_main_branch() -> Iterator[typing.Lint]:
@@ -13,4 +23,7 @@ def compare_with_main_branch() -> Iterator[typing.Lint]:
     """
     config_argument = "--config=config.d/.flake8" if Path("config.d/.flake8").exists() else ""
     command = " ".join(("flake8", config_argument, "{lint_file}"))
-    return generics.lint_compare_with_main_branch(command)
+    return generics.lint_compare_with_main_branch(
+        execute_command=command,
+        filters=(_filter,)
+    )

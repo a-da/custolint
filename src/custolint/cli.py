@@ -14,7 +14,7 @@ def cli(*args: str) -> None:
         args = tuple(sys.argv)
 
     if len(args) < 2:
-        sys.exit("require one of argument: mypy, pylint, flake8, coverage")
+        sys.exit("Require one of argument: mypy, pylint, flake8, coverage")
 
     command = args[1]
     if command == "mypy":
@@ -31,7 +31,7 @@ def cli(*args: str) -> None:
 
     if command == "coverage":
         if len(args) < 3:
-            sys.exit('Include path for coverage is missing, usually it is `.coverage`')
+            sys.exit('Path for coverage is missing, usually it is `.coverage`')
 
         coverage_file_location = args[2]
         generics.group_by_email_and_file_name(
@@ -39,4 +39,4 @@ def cli(*args: str) -> None:
         )
         return
 
-    sys.exit(f'command {command!r} not implemented')
+    sys.exit(f'The command {command!r} is not implemented')

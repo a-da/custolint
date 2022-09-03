@@ -1,4 +1,4 @@
-MAIN_BRANCH := main
+IGNORE_ERROR_EXIT ?= false
 
 update_pip:
 	pip install -U pip wheel
@@ -20,14 +20,14 @@ install_dev:
 
 custolint_validate:
 	rm -f .coverage
-	coverage run --branch -m pytest
-	MAIN_BRANCH=$(MAIN_BRANCH) custolint coverage .coverage
+	coverage run --source="src/custolint" --branch -m pytest
+	custolint coverage .coverage || $(IGNORE_ERROR_EXIT)
 	echo
-	MAIN_BRANCH=$(MAIN_BRANCH) custolint pylint
+	custolint pylint
 	echo
-	MAIN_BRANCH=$(MAIN_BRANCH) custolint flake8
+	custolint flake8
 	echo
-	MAIN_BRANCH=$(MAIN_BRANCH) custolint mypy
+	custolint mypy
 
 
 validate: custolint_validate

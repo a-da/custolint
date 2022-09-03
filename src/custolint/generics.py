@@ -1,11 +1,13 @@
 """
 Keep here all tools, helpers and utility API.
 """
-from typing import Iterator, Optional, Sequence, Tuple
+from typing import Callable, Iterator, List, Optional, Sequence, Tuple, Union
+
 import builtins
 import logging
 import re
 import sys
+from pathlib import Path
 
 import bash
 
@@ -25,35 +27,6 @@ def output(msg: str, *args: str) -> None:
         builtins.print(msg % args)
 
 
-def do_filter(pylint_line: str) -> bool:
-    """
-    Return True if we want to skip the check else False if we want this check
-    """
-    # pylint: disable=too-many-return-statements
-
-    if "Line too long" in pylint_line:
-        return True
-
-    # special rules for test folders
-    if "/test_" in pylint_line:
-        if "(missing-function-docstring)" in pylint_line:
-            return True
-
-        if " function (no-self-use)" in pylint_line:
-            return True
-
-        if " (missing-module-docstring)" in pylint_line:
-            return True
-
-        if " (protected-access)" in pylint_line:
-            return True
-
-    if re.search(r"TODO: SPACE-\d+: ", pylint_line):  # ignore all TODO's marked with Jira reference
-        return True
-
-    return False
-
-
 def _parse_message_line(message: str) -> Optional[Tuple[str, str]]:
     """
     >> pylint_parse_message_line("cli/test/test_cli.py:100:4:")
@@ -69,12 +42,12 @@ def _parse_message_line(message: str) -> Optional[Tuple[str, str]]:
     return None
 
 
-def lint_compare_with_main_branch(execute_command: str) -> Iterator[typing.Lint]:
+def lint_compare_with_main_branch(execute_command: str, filters: Callable) -> Iterator[typing.Lint]:
     """
     A common API for pylint and flake8
     """
     # pylint: disable=too-many-locals
-    changes = git.changes(git.MAIN_BRANCH)
+    changes = git.changes()
 
     includes = re.compile(r'.py$')
     excludes = re.compile(r"/setup.py")
@@ -91,23 +64,30 @@ def lint_compare_with_main_branch(execute_command: str) -> Iterator[typing.Lint]
     command = bash.bash(executed_command)
 
     if command.stderr:
-        LOG.error("The error was detected while running this command %r", executed_command)
-        sys.exit(command.stderr.decode())
+        logging.error('Lint command failed: %s', command.stderr.decode())
+        sys.exit(command.code)
 
     stdout = command.stdout.decode()
-    LOG.debug("pylint command output")
+
+    for filter_item in filters:
+        yield filter_item
+
+    LOG.debug('Lint stdout: %s', stdout)
+
+    similar_line = None
 
     for lint_line in stdout.split("\n"):
-
-        if do_filter(lint_line):
-            continue
-
         # TODO add parser: filename, line_number, message, apply to mypy as well
         file_name_line_number = _parse_message_line(lint_line)
         if file_name_line_number:
+            similar_line = None
             file_name, line_number = file_name_line_number
             contributor = changes.get(file_name, {}).get(int(line_number))
             message = lint_line.replace(':'.join(file_name_line_number), '').strip()
+
+            if 'Similar lines in' in message:
+                similar_line = True
+
             if contributor:
                 yield (
                     file_name,
@@ -117,6 +97,9 @@ def lint_compare_with_main_branch(execute_command: str) -> Iterator[typing.Lint]
                     contributor['date']
                 )
         else:
+            if similar_line:
+                continue
+
             if not lint_line.strip("-"):
                 continue
             if lint_line.startswith("Your code has been rated at "):
@@ -124,7 +107,7 @@ def lint_compare_with_main_branch(execute_command: str) -> Iterator[typing.Lint]
             if lint_line.startswith("*****"):
                 continue
 
-            LOG.error("Can not parse lint line %r", lint_line)
+            raise RuntimeError(f"Can not parse lint line {lint_line}")
 
 
 def _output_grouping_by_email_and_file_name(chunk: Sequence[typing.Coverage]) -> None:
@@ -177,16 +160,47 @@ def group_by_email_and_file_name(log: Iterator[typing.Coverage]) -> None:
 
     if not has_found_something:
         output("::Dry and Clean::")
+    else:
+        sys.exit(41)
 
 
-def filer_output(log: Iterator[typing.Lint]) -> None:
+def filer_output(log: Iterator[Union[Callable, typing.Lint]]) -> None:
     """
     Filter output by:
     - date range
     - include contributor
     - exclude contributor
     """
+    cache = {}
+    filters_chain: List[Callable] = []
+
+    has_found_something = False
     # get filter from env, configuration and cli
     for line in log:
-        # todo: apple filter condition
-        output("%s " * len(line), *line)  # type: ignore[arg-type]
+
+        if callable(line):
+            filters_chain.append(line)
+            continue
+
+        file_name, line_number, message, *tail = line
+        line_number = int(line_number)
+
+        do_continue = False
+        for filter_item in filters_chain:
+            if filter_item(Path(file_name), message, line_number, cache):
+                do_continue = True
+                break
+        if do_continue:
+            continue
+
+        output(
+            '%s:%s %s' + ("%s " * len(tail)),
+            file_name, line_number, message, *tail  # type: ignore[arg-type]
+        )
+
+        has_found_something = True
+
+    if not has_found_something:
+        output("::Dry and Clean::")
+    else:
+        sys.exit(41)

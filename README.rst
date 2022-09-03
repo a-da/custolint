@@ -2,6 +2,18 @@
 custolint - custom linter
 =========================
 
+**custolint** is a small library that help you customize your existing validations in pipelines:
+
+Link to sphinx documentation [to be placed here] also a icon.
+
+Implements:
+
+- `Pylint <src/custolint/pylint.py>`_
+- `Flake8 <src/custolint/flake8.py>`_
+- `MyPy <src/custolint/mypy.py>`_
+- `Python Coverage <src/custolint/coverage.py>`_
+
+
 Motivation
 ----------
 

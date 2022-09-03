@@ -1,7 +1,8 @@
 """
 `Mypy: Static Typing for Python <https://github.com/python/mypy>`_ integration.
 """
-from typing import Iterator, Optional, Sequence
+from typing import Callable, Dict, Iterator, Optional, Sequence
+
 import logging
 import re
 import sys
@@ -30,21 +31,6 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
         contributor = changes.get(file_name, {}).get(line_number)
         if contributor:
 
-            # FILTERS LIST:
-            #
-            # Filter 001
-            # test functions always return None, make no sense to enforce return None, ignore that
-            #    def test_a():
-            # """
-            if re.search(r"test_.*\.py", file_name) and \
-                    "Function is missing a type annotation" in message:
-
-                content = Path(file_name).read_text()  # pylint: disable=unspecified-encoding
-                code_line = content.splitlines()[line_number - 1]
-
-                if "def test_" in code_line:
-                    return None
-
             return (
                 file_name,
                 int(line_number),
@@ -54,8 +40,8 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
             )
         return None
 
-    if len(fields) == 1 and re.search("Found .* errors in .* files|"
-                                      "Success: no issues found in", fields[0]):
+    if len(fields) == 1 and re.search(r"Found .* errors in .* file|"
+                                      r"Success: no issues found in", fields[0]):
         return None
 
     if fields == ['']:
@@ -63,21 +49,56 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
 
     raise ValueError(str(fields))
 
-    # if "/test/conftest.py" in file_name:
-    #     if "Duplicate module named" in mypy_line:
-    #         return
-    #     if "Are you missing an __init__.py" in mypy_line:
-    #         return
-    #
-    # LOG.warning("something wrong %r", fields)
+
+def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, str]) -> bool:
+    """
+    Return True if we want to skip the check else False if we want this check
+    """
+    # pylint: disable=too-many-return-statements
+
+    # pylint: disable=duplicate-code
+    test_files = re.compile(r"(test_.*|conftest)\.py")
+
+    if test_files.search(path.name):
+        if path not in cache:
+            cache[path] = path.read_bytes().decode().splitlines()
+
+        content = cache[path]
+
+        line_content = content[line_number - 1]
+
+    # pylint: enable=duplicate-code
+
+        if "def test_" in line_content:
+
+            if "Function is missing a type annotation" in message:
+                return True
+
+            print(line_content, message, "[type-arg]" in message)
+            if "[type-arg]" in message:
+                return True
+
+            if '[no-untyped-def]' in message:
+                return True
+
+            if '[attr-defined]' in message:
+                return True
+
+            if 'Use "-> None" if function does not return a value' in message:
+                return True
+
+            if 'dict-item' in message:
+                return True
+
+    return False
 
 
-def compare_with_main_branch() -> Iterator[typing.Lint]:
+def compare_with_main_branch(filters: Callable = (_filter,)) -> Iterator[typing.Lint]:
     """
     Compare mypy putput against target branch
     """
-    LOG.info("MYPY COMPARE WITH %r branch", git.MAIN_BRANCH)
-    changes = git.changes(git.MAIN_BRANCH)
+
+    changes = git.changes()
 
     includes = re.compile(r'.py$')
     excludes = re.compile(r"/setup.py")
@@ -104,9 +125,13 @@ def compare_with_main_branch() -> Iterator[typing.Lint]:
     LOG.info("execute command %r", execute_command)
     command = bash.bash(execute_command)
     if command.stderr:
-        sys.exit(command.stderr.decode())
+        logging.error('Mypy command failed: %s', command.stderr.decode())
+        sys.exit(command.code)
 
     stdout = command.stdout.decode()
+
+    for filter_item in filters:
+        yield filter_item
 
     for mypy_line in stdout.split("\n"):
         fields = mypy_line.split(":", 3)  # filepath, line number, level, message

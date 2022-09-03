@@ -1,2 +1,19 @@
 [flake8]
-max-line-length = 100
+per-file-ignores =
+    # line too long
+    tests/*.py: E501,
+
+ignore =
+    # I100 Import statements are in the wrong order
+    # replaced by isort auto-format
+    I100,
+    # I202 Additional newline in a group of imports
+    # replaced by isort auto-format
+    I202,
+    # I201 Missing newline between import groups
+    # replaced by isort auto-format
+    I201,
+    # E501 line too long
+    # replaced by pylint
+    E501,
+
