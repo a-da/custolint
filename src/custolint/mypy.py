@@ -1,7 +1,7 @@
 """
 `Mypy: Static Typing for Python <https://github.com/python/mypy>`_ integration.
 """
-from typing import Callable, Dict, Iterator, Optional, Sequence
+from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
 
 import logging
 import re
@@ -10,8 +10,9 @@ import tempfile
 from pathlib import Path
 
 import bash
+from mypy import errorcodes
 
-from . import git, typing
+from . import generics, git, typing
 
 LOG = logging.getLogger(__name__)
 
@@ -31,12 +32,12 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
         contributor = changes.get(file_name, {}).get(line_number)
         if contributor:
 
-            return (
-                file_name,
-                int(line_number),
-                message.strip(),
-                contributor['email'],
-                contributor['date']
+            return typing.Lint(
+                file_name=file_name,
+                line_number=int(line_number),
+                message=message.strip(),
+                email=contributor['email'],
+                date=contributor['date']
             )
         return None
 
@@ -50,16 +51,15 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
     raise ValueError(str(fields))
 
 
-def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, str]) -> bool:
+def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
     """
     Return True if we want to skip the check else False if we want this check
     """
     # pylint: disable=too-many-return-statements
 
     # pylint: disable=duplicate-code
-    test_files = re.compile(r"(test_.*|conftest)\.py")
 
-    if test_files.search(path.name):
+    if generics.TEST_FILES_REGEX.search(path.name):
         if path not in cache:
             cache[path] = path.read_bytes().decode().splitlines()
 
@@ -67,41 +67,60 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, str]) 
 
         line_content = content[line_number - 1]
 
+        # pylint: disable=c-extension-no-member
+        # if a function have a 'dummy' or 'mock' in word in its name
+        # then it can be skipped for check
+        if all((
+            f" [{errorcodes.NO_UNTYPED_DEF.code}]" in message,
+            re.search(r'def .*(dummy|mock).*\(', line_content),
+        )):
+            return True
+
+        # mock a transient attribute
+        # e.g.
+        # mock.patch.object(generics.git, "changes", return_value={
+        # test_b.py:78 Module has no attribute "git" [attr-defined]
+        if all((
+                f" [{errorcodes.ATTR_DEFINED.code}]" in message,
+                re.search(r'mock\.patch\.object\(', line_content),
+        )):
+            return True
     # pylint: enable=duplicate-code
 
         if "def test_" in line_content:
-
-            if "Function is missing a type annotation" in message:
+            if f" [{errorcodes.TYPE_ARG.code}]" in message:
                 return True
 
-            print(line_content, message, "[type-arg]" in message)
-            if "[type-arg]" in message:
+            if f" [{errorcodes.NO_UNTYPED_DEF.code}]" in message:
                 return True
 
-            if '[no-untyped-def]' in message:
+            if f" [{errorcodes.ATTR_DEFINED.code}]" in message:
                 return True
 
-            if '[attr-defined]' in message:
+            if "Use \"-> None\" if function does not return a value" in message:
                 return True
 
-            if 'Use "-> None" if function does not return a value' in message:
-                return True
-
-            if 'dict-item' in message:
+            if "dict-item" in message:
                 return True
 
     return False
 
 
-def compare_with_main_branch(filters: Callable = (_filter,)) -> Iterator[typing.Lint]:
+def _parse_message_line(message: str) -> Sequence[str]:
+    return message.split(":", 3)  # filepath, line number, level, message
+
+
+def compare_with_main_branch(
+        filters: Iterable[typing.FiltersType] = (_filter,)
+) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
     """
     Compare mypy putput against target branch
     """
 
     changes = git.changes()
 
-    includes = re.compile(r'.py$')
-    excludes = re.compile(r"/setup.py")
+    includes = re.compile(r'\.py$')
+    excludes = re.compile(r"/setup\.py")
 
     paths = "\n".join(i for i in changes if includes.search(i) and not excludes.search(i))
 
@@ -122,7 +141,7 @@ def compare_with_main_branch(filters: Callable = (_filter,)) -> Iterator[typing.
 
     execute_command = command_args.format(tmp_path=tmp_path)
 
-    LOG.info("execute command %r", execute_command)
+    LOG.info("Execute command %r", execute_command)
     command = bash.bash(execute_command)
     if command.stderr:
         logging.error('Mypy command failed: %s', command.stderr.decode())
@@ -134,7 +153,7 @@ def compare_with_main_branch(filters: Callable = (_filter,)) -> Iterator[typing.
         yield filter_item
 
     for mypy_line in stdout.split("\n"):
-        fields = mypy_line.split(":", 3)  # filepath, line number, level, message
+        fields = _parse_message_line(mypy_line)
 
         results = _process_line(fields, changes)
         if results:

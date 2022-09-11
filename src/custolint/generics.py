@@ -1,7 +1,7 @@
 """
 Keep here all tools, helpers and utility API.
 """
-from typing import Callable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import builtins
 import logging
@@ -13,36 +13,74 @@ import bash
 
 from . import git, typing
 
-TO_LOG = False
 LOG = logging.getLogger(__name__)
 
+TEST_FILES_REGEX = re.compile(r"(^|/)(test_.*|conftest)\.py")
 
-def output(msg: str, *args: str) -> None:
+
+def output(msg: str, *args: Union[str, int], log: Optional[logging.Logger] = None) -> None:
     """
     A unified version of output to stdout or log.
     """
-    if TO_LOG:
-        LOG.info(msg, *args)
+    if log:
+        log.info(msg, *args)
     else:
         builtins.print(msg % args)
 
 
-def _parse_message_line(message: str) -> Optional[Tuple[str, str]]:
+def _parse_message_line(stdout_line: str) -> Optional[Tuple[str, int, str]]:
     """
     >> pylint_parse_message_line("cli/test/test_cli.py:100:4:")
     (cli/test/test_cli.py, 100)
     """
-    # cli/test/test_cli.py:100:4:
-    match = re.search(r"(^.+?):(\d+):(\d+):", message)
+    # cli/test/test_cli.py:100:4: message
+
+    # expected not parsable lines
+    if not stdout_line.strip("-"):
+        return None
+
+    if stdout_line.startswith("Your code has been rated at "):
+        return None
+
+    if stdout_line.startswith("*****"):
+        return None
+
+    match = re.search(r"(^.+?):(\d+):(.+)", stdout_line)
     if match:
         file_name = match.group(1)
-        line_number = match.group(2)
-        return file_name, line_number
+        line_number = int(match.group(2))
+        message = match.group(3)
+        return file_name, line_number, message
+
+    # unexpected not parsable lines
+    raise RuntimeError(f"Can not parse lint line {stdout_line!r}")
+
+
+def _process_line(fields: Tuple[str, int, str], changes: typing.Changes) -> Optional[typing.Lint]:
+    """
+    Process a single line message from PyLint or Flake8 report
+    """
+    file_name = fields[0]
+    line_number = fields[1]
+    message = fields[2]
+
+    contributor = changes.get(file_name, {}).get(line_number)
+
+    if contributor:
+        return typing.Lint(
+            file_name=file_name,
+            line_number=line_number,
+            message=message,
+            email=contributor['email'],
+            date=contributor['date']
+        )
 
     return None
 
 
-def lint_compare_with_main_branch(execute_command: str, filters: Callable) -> Iterator[typing.Lint]:
+def lint_compare_with_main_branch(
+        execute_command: str,
+        filters: Iterable[typing.FiltersType]) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
     """
     A common API for pylint and flake8
     """
@@ -77,56 +115,48 @@ def lint_compare_with_main_branch(execute_command: str, filters: Callable) -> It
     similar_line = None
 
     for lint_line in stdout.split("\n"):
-        # TODO add parser: filename, line_number, message, apply to mypy as well
-        file_name_line_number = _parse_message_line(lint_line)
-        if file_name_line_number:
-            similar_line = None
-            file_name, line_number = file_name_line_number
-            contributor = changes.get(file_name, {}).get(int(line_number))
-            message = lint_line.replace(':'.join(file_name_line_number), '').strip()
+        if similar_line:
+            continue
 
-            if 'Similar lines in' in message:
-                similar_line = True
+        fields = _parse_message_line(lint_line)
+        if not fields:
+            continue
 
-            if contributor:
-                yield (
-                    file_name,
-                    int(line_number),
-                    message,
-                    contributor['email'],
-                    contributor['date']
-                )
+        msg = fields[2]
+        if 'Similar lines in' in msg:
+            similar_line = True
         else:
-            if similar_line:
-                continue
+            similar_line = None
 
-            if not lint_line.strip("-"):
-                continue
-            if lint_line.startswith("Your code has been rated at "):
-                continue
-            if lint_line.startswith("*****"):
-                continue
-
-            raise RuntimeError(f"Can not parse lint line {lint_line}")
+        results = _process_line(fields, changes)
+        if results:
+            yield results
 
 
-def _output_grouping_by_email_and_file_name(chunk: Sequence[typing.Coverage]) -> None:
+def _output_grouping_by_email_and_file_name(chunk: Iterable[typing.Coverage]) -> None:
     """
     Output grouping items email and file name
     """
-    file_name = chunk[0][1]
-    email = chunk[0][0]['email']
-    date = chunk[0][0]['date']
-    if len(chunk) == 1:
-        line_number = f"{chunk[0][2]}"
+    iterator = iter(chunk)
+    head = next(iterator)
+    file_name = head[1]
+    email = head[0]['email']
+    date = head[0]['date']
+
+    last = None
+    for last in iterator:
+        pass
+
+    if not last:
+        line_number = f"{head[2]}"
     else:
-        start_line, end_line = chunk[0][2], chunk[-1][2]
+        start_line, end_line = head[2], last[2]
         line_number = f"{start_line}-{end_line}"
 
     output("%s:%s %05s %s", file_name, line_number, email, date)
 
 
-def group_by_email_and_file_name(log: Iterator[typing.Coverage]) -> None:
+def group_by_email_and_file_name(log: Iterable[typing.Coverage]) -> None:
     """
     Group by email and file name, used for coverage.
     """
@@ -136,9 +166,9 @@ def group_by_email_and_file_name(log: Iterator[typing.Coverage]) -> None:
     previous_line_number = None
     chunk = []
     for line in log:
-        email = line[0]['email']
-        file_name = line[1]
-        line_number = line[2]
+        email = line.contributor['email']
+        file_name = line.file_name
+        line_number = line.line_number
         has_found_something = True
 
         if all((
@@ -164,15 +194,15 @@ def group_by_email_and_file_name(log: Iterator[typing.Coverage]) -> None:
         sys.exit(41)
 
 
-def filer_output(log: Iterator[Union[Callable, typing.Lint]]) -> None:
+def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]]) -> None:
     """
     Filter output by:
     - date range
     - include contributor
     - exclude contributor
     """
-    cache = {}
-    filters_chain: List[Callable] = []
+    cache: Dict[Path, Sequence[str]] = {}
+    filters_chain: List[typing.FiltersType] = []
 
     has_found_something = False
     # get filter from env, configuration and cli
@@ -182,21 +212,15 @@ def filer_output(log: Iterator[Union[Callable, typing.Lint]]) -> None:
             filters_chain.append(line)
             continue
 
-        file_name, line_number, message, *tail = line
-        line_number = int(line_number)
-
         do_continue = False
         for filter_item in filters_chain:
-            if filter_item(Path(file_name), message, line_number, cache):
+            if filter_item(Path(line.file_name), line.message, line.line_number, cache):
                 do_continue = True
                 break
         if do_continue:
             continue
 
-        output(
-            '%s:%s %s' + ("%s " * len(tail)),
-            file_name, line_number, message, *tail  # type: ignore[arg-type]
-        )
+        output('%s:%d %s', line.file_name, line.line_number, line.message)
 
         has_found_something = True
 

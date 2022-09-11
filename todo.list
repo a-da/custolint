@@ -1,8 +1,0 @@
-TODO:
-
-1. detect deprecated function usage
-2. use cache
-
-DONE:
-1. autodetect main branch
-2. add coverage configuration

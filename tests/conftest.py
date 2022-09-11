@@ -1,4 +1,4 @@
-from typing import Callable, Generator, Iterator
+from typing import Any, Callable, Iterator, Optional
 
 import os
 import textwrap
@@ -10,7 +10,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True, scope='session')
-def cd_into_root() -> Generator[None, None, None]:
+def cd_into_root() -> Iterator[None]:
     """
     Change directory into the root directory
     """
@@ -22,7 +22,9 @@ def cd_into_root() -> Generator[None, None, None]:
     os.chdir(previous_cwd)
 
 
-def patch_bash(stdout: str = '', stderr: str = '', code: int = 0):
+def patch_bash(stdout: Optional[str] = '',
+               stderr: Optional[str] = '',
+               code: Optional[int] = 0) -> mock.MagicMock:
     """
     Wrapper for patching bash library, to be used by py:func:`.fixture_path_bash`
     """
@@ -40,8 +42,18 @@ def patch_bash(stdout: str = '', stderr: str = '', code: int = 0):
 
 
 @pytest.fixture(name='patch_bash')
-def fixture_path_bash() -> Iterator[Callable]:
+def fixture_path_bash() -> Iterator[Callable[..., mock.Mock]]:
     """
     fixture to patch ``bash.bash`` call
     """
     yield patch_bash
+
+
+@pytest.fixture(name='path_mock')
+def _path_mock() -> Callable[..., mock.Mock]:
+    def _(name: str, **kwargs: Any) -> mock.Mock:
+        path = mock.Mock(**kwargs)
+        path.name = name
+        return path
+
+    return _

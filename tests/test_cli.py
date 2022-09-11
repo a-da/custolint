@@ -4,7 +4,7 @@ import re
 import sys
 from unittest import mock
 
-from custolint import cli
+from custolint import cli, generics
 
 import pytest
 
@@ -16,7 +16,9 @@ import pytest
     pytest.param(('custolint', "coverage", '.coverage'), id='coverage'),
 ))
 def test_cli_compare_with_main_branch(api: List[str]):
-    with mock.patch.object(cli, api[1]) as mocked:
+    with \
+            mock.patch.object(cli, api[1]) as mocked, \
+            mock.patch.object(generics, 'output'):
 
         cli.cli(*api)
 
@@ -26,6 +28,7 @@ def test_cli_compare_with_main_branch(api: List[str]):
 def test_cli_sys_argv():
     with \
             mock.patch.object(cli, 'mypy') as mocked, \
+            mock.patch.object(generics, 'output'), \
             mock.patch.object(sys, 'argv', (None, 'mypy')):
 
         cli.cli()

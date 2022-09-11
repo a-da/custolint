@@ -1,23 +1,71 @@
 """
 Keep here all custom data type used within this package
 """
-from typing import Dict, Tuple
+from pathlib import Path
+from typing import Callable, Dict, NamedTuple, Sequence, TypedDict
+from typing_extensions import TypeAlias
 
-Changes = Dict[str, Dict[int, Dict[str, str]]]
-Lint = Tuple[str, int, str, str, str]
-"""
-file name
-line number
-message
-email
-date
-"""
 
-Blame = Tuple[str, int, str, str]
+class Contributor(TypedDict):
+    """Git Blame Contributor data"""
+    email: str
+    date: str
 
-Coverage = Tuple[Dict[str, str], str, int]
-"""
-contributor
-file name
-line_number
-"""
+
+class SourceCode(NamedTuple):
+    """Common params passed into internal API"""
+    file_name: str
+    line_number: int
+
+
+class Blame(NamedTuple):
+    """
+    Full Git Blame data
+
+    Contributor(email and date) is the same but is a Dict not a Tuple
+    """
+    email: str
+    date: str
+
+    # inherit from SourceCode, not possible yet
+    file_name: str
+    line_number: int
+
+
+class Lint(NamedTuple):
+    """
+    Final Data Type to be reported, filtered ...
+    """
+    message: str
+
+    # inherit from Blame, not possible yet
+    email: str
+    date: str
+
+    # inherit from SourceCode, not possible yet
+    file_name: str
+    line_number: int
+
+
+class Coverage(NamedTuple):
+    """
+    Python Coverage Data
+    """
+    contributor: Contributor
+
+    # inherit from SourceCode, not possible yet
+    file_name: str
+    line_number: int
+
+
+Changes: TypeAlias = Dict[str, Dict[int, Contributor]]
+
+FiltersType: TypeAlias = Callable[[Path, str, int, Dict[Path, Sequence[str]]], bool]
+
+__all__ = [
+    'Changes',
+    'Lint',
+    'Blame',
+    'Coverage',
+    'FiltersType',
+]

@@ -1,7 +1,7 @@
 """
 `Flake8 <https://github.com/PyCQA/flake8>`_ integration.
 """
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Sequence, Union
 
 from pathlib import Path
 
@@ -9,7 +9,7 @@ from . import generics, typing
 
 
 # pylint: disable=unused-argument
-def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, str]) -> bool:
+def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
     """
     Return True if we want to skip the check else False if we want this check
     """
@@ -17,7 +17,7 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, str]) 
 # pylint: enable=unused-argument
 
 
-def compare_with_main_branch() -> Iterator[typing.Lint]:
+def compare_with_main_branch() -> Iterator[Union[typing.Lint, typing.FiltersType]]:
     """
     Compare all flake8 messages against code different to target branch.
     """

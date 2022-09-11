@@ -11,7 +11,7 @@ def path_mock(name: str, **kwargs):
     return path
 
 
-PYLINT_PATH_MOCK = path_mock(name='src/custolint/pylint.py')
+PYLINT_PATH_MOCK = path_mock(name='src/custolint/pylint_cache.py')
 
 BANANA_2_PATH_MOCK = path_mock(
     name='test_banana2.py',
@@ -38,7 +38,7 @@ BANANA_2_PATH_MOCK = path_mock(
     pytest.param(
         PYLINT_PATH_MOCK,
         'some-message',
-        id='in-cache'
+        id='not-test-in-cache'
     ),
     pytest.param(
         path_mock(
@@ -62,7 +62,8 @@ def test_filter_false(path: Path, message: str):
         message=message,
         line_number=1,
         cache={
-            BANANA_2_PATH_MOCK: 'content-BANANA_2_PATH_MOCK'
+            BANANA_2_PATH_MOCK: 'content-BANANA_2_PATH_MOCK',
+            PYLINT_PATH_MOCK: ['content-PYLINT_PATH_MOCK'],
         }
     )
 
@@ -85,3 +86,27 @@ def test_filter_test_functions_true(message: str):
         line_number=1,
         cache={}
     )
+
+
+@pytest.mark.parametrize('message, line_content, is_filtered', (
+    pytest.param(
+        'Some Message (missing-function-docstring)', 'def filter_test_functions(', True,
+        id='do-filter'
+    ),
+    pytest.param(
+        'Some Message (missing-function-docstring)', 'def do_that(', False,
+        id='do-not-filter'
+    ),
+))
+def test_filter_no_test_functions_true(message: str, line_content: str, is_filtered: bool):
+    assert pylint._filter(
+        path=path_mock(
+            name='not_test_module.py',
+            **{
+                'read_bytes.return_value': line_content.encode()
+            }
+        ),
+        message=message,
+        line_number=1,
+        cache={}
+    ) is is_filtered

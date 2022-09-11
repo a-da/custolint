@@ -8,7 +8,7 @@
 .. important:
 
     Please ensure set ``source`` in the configuration,
-    overwise??? coverage will include just files covered by the tests.
+    otherwise coverage will include just files covered by the tests.
 
     TODO:
     See config.d/.coveragerc
@@ -36,8 +36,6 @@ def _process_missing_lines(
         file_name: str,
         missing: str,
         changes: typing.Changes) -> Iterator[typing.Coverage]:
-    # if "/test_" in file_name:
-    #     continue
 
     if "-" in missing:
         # The condition was nether false or nether true, we will just point to the first line
@@ -56,7 +54,11 @@ def _process_missing_lines(
     for line_number in start_end:
         contributor = changes.get(file_name, {}).get(int(line_number))
         if contributor:
-            yield contributor, file_name, line_number
+            yield typing.Coverage(
+                contributor=contributor,
+                file_name=file_name,
+                line_number=line_number
+            )
 
 
 def compare_with_main_branch(coverage_file_location: str) -> Iterator[typing.Coverage]:

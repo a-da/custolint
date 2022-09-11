@@ -2,7 +2,7 @@ from typing import Callable, Dict, List
 
 from unittest import mock
 
-from custolint import git
+from custolint import git, typing
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -21,14 +21,24 @@ def test_extract_email_and_date_from_blame(blame: str):
 
 
 @mock.patch.object(git, "_blame", side_effect=[
-    [('care/of/red/potato.py', 310, 'gus.fring@some-domain.com', '2021-06-25')],
-    [('care/of/yellow/banana.py', 1, 'lalo.salamanca@some-domain.com', '2022-03-07'),
-     ('care/of/yellow/banana.py', 2, 'lalo.salamanca@some-domain.com', '2022-03-07'),
-     ('care/of/yellow/banana.py', 3, 'lalo.salamanca@some-domain.com', '2022-03-07')]
-
+    [
+        typing.Blame(
+            file_name='care/of/red/potato.py',
+            line_number=310,
+            email='gus.fring@some-domain.com',
+            date='2021-06-25'
+        )
+    ],
+    [
+        typing.Blame(
+            file_name='care/of/yellow/banana.py',
+            line_number=i,
+            email='lalo.salamanca@some-domain.com',
+            date='2022-03-07'
+        ) for i in [1, 2, 3]
+    ]
 ])
 def test_git_changes_success(_, patch_bash: Callable):
-    #
     with \
             mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
             patch_bash(
@@ -75,6 +85,17 @@ def test_git_changes_error(patch_bash: Callable, caplog):
     assert caplog.messages == ['Diff command failed: no git installed']
 
 
+def test_git_changes_debug_enabled(patch_bash: Callable, caplog):
+    with \
+            mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
+            mock.patch.object(git.LOG, 'isEnabledFor', return_value=True), \
+            patch_bash(stdout='some message about diff'):
+
+        git.changes()
+
+    assert caplog.messages[2] == 'Git diff output some message about diff'
+
+
 @pytest.mark.parametrize("file_name, the_line_numbers, bash_stdout, git_command, expect", [
     pytest.param(
         'a/b/api/bar.py',
@@ -85,7 +106,12 @@ def test_git_changes_error(patch_bash: Callable, caplog):
         ),
         'git blame -L 310,+1 --show-email --  a/b/api/bar.py',
         [
-            ('a/b/api/bar.py', 310, 'john.snow@some-domain.eu', '2022-05-06')
+            typing.Blame(
+                file_name='a/b/api/bar.py',
+                line_number=310,
+                email='john.snow@some-domain.eu',
+                date='2022-05-06'
+            )
         ],
         id='concrete_line_number'
     ),
@@ -101,11 +127,14 @@ def test_git_changes_error(patch_bash: Callable, caplog):
         ),
         'git blame -L 1,+3 --show-email --  a/b/api/bar.py',
         [
-            ('a/b/api/bar.py', 1, 'john.snow@some-domain.eu', '2022-05-06'),
-            ('a/b/api/bar.py', 2, 'john.snow@some-domain.eu', '2022-05-06'),
-            ('a/b/api/bar.py', 3, 'john.snow@some-domain.eu', '2022-05-06')
+            typing.Blame(
+                file_name='a/b/api/bar.py',
+                line_number=i,
+                email='john.snow@some-domain.eu',
+                date='2022-05-06'
+            ) for i in [1, 2, 3]
         ],
-        id='tow_line_numbers'
+        id='two_line_numbers'
     ),
     pytest.param(
         'a/b/api/bar.py', ["10-23"],
@@ -119,9 +148,12 @@ def test_git_changes_error(patch_bash: Callable, caplog):
         ),
         'git blame -L 10,+13 --show-email --  a/b/api/bar.py',
         [
-            ('a/b/api/bar.py', 10, 'john.snow@some-domain.eu', '2022-05-06'),
-            ('a/b/api/bar.py', 11, 'john.snow@some-domain.eu', '2022-05-06'),
-            ('a/b/api/bar.py', 12, 'john.snow@some-domain.eu', '2022-05-06')
+            typing.Blame(
+                file_name='a/b/api/bar.py',
+                line_number=i,
+                email='john.snow@some-domain.eu',
+                date='2022-05-06'
+            ) for i in [10, 11, 12]
         ],
         id='range_of_line_numbers'
     )

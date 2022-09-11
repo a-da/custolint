@@ -1,12 +1,14 @@
 """
 API to get the affected code lines by comparing current branch to a target branch.
 """
-from typing import Iterator, Tuple
+from typing import Iterable, Iterator, Tuple, Union, cast
+from collections import defaultdict
 
 import logging
 import os
 import re
 import sys
+import json
 
 import bash
 
@@ -76,7 +78,30 @@ def _blame(the_line_number: str, file_name: str) -> Iterator[typing.Blame]:
 
     for index, line in enumerate(stdout.split("\n"), start=start):
         email, date = _extract_email_and_date_from_blame(line)
-        yield file_name, index, email, date
+        yield typing.Blame(
+            file_name=file_name,
+            line_number=int(index),
+            email=email,
+            date=date
+        )
+
+
+def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Iterator[typing.Blame]]:
+    # line like +++ b/care/share/calc/_methods2.py
+    if diff_line.startswith("+++ "):
+        _, file_name = diff_line.split("+++ ", maxsplit=1)
+        return file_name[2:]
+
+    # line like @@ -0,0 +1,146 @@
+    if not diff_line.startswith("@@"):
+        return None
+
+    affected_lines = diff_line.split("+", maxsplit=1)[1].split(maxsplit=1)[0]
+
+    if affected_lines.endswith(",0"):  # the line is deleted and have to be ignored
+        return None
+
+    return _blame(affected_lines, file_name)
 
 
 def changes() -> typing.Changes:
@@ -87,7 +112,22 @@ def changes() -> typing.Changes:
     main_branch = _autodetect_main_branch()
     LOG.info("Compare current branch with %r branch", main_branch)
 
-    files: typing.Changes = {}
+    files: typing.Changes = defaultdict(dict)
+
+    # Add new feature
+    # 1. save last main branch commit hash into custolint.d/
+    # 2. compare the remote main branch with custolint.d/latest_<main>_branch_hash.txt
+    # 3. If there is no connection to remote the consider true with a warning else
+    # If the check fails provide hints with warning how to sync the main branch
+    #
+    # git_pull_rebase_command = f"git pull --rebase origin {main_branch}"
+    # git_pull_rebase_result = bash.bash(git_pull_rebase_command)
+    # LOG.info("Sync main branch with current branch with command %r", git_pull_rebase_command)
+    #
+    # if git_pull_rebase_result.code:
+    #     logging.error('Sync command failed: %s', git_pull_rebase_result.stderr.decode())
+    #     sys.exit(git_pull_rebase_result.code)
+    #
 
     the_file = ""
     execute_command = f"git diff origin/{main_branch} -U0 --diff-filter=ACMRTUXB"
@@ -99,32 +139,32 @@ def changes() -> typing.Changes:
         sys.exit(command.code)
 
     stdout = command.stdout.decode()
+    LOG.debug('Git diff output %s', stdout)
+
     for line in stdout.split("\n"):
 
-        # line like +++ b/care/share/calc/_methods2.py
-        if line.startswith("+++ "):
-            _, the_file = line.split("+++ ", maxsplit=1)
-            the_file = the_file[2:]
+        result = _process_diff_line(line, the_file)
+
+        if not result:
             continue
 
-        # line like @@ -0,0 +1,146 @@
-        if line.startswith("@@"):
-            affected_lines = line.split("+", maxsplit=1)[1].split(maxsplit=1)[0]
+        if isinstance(result, str):
+            the_file = result
+            continue
 
-            if affected_lines.endswith(",0"):  # the line is deleted and have to be ignored
-                continue
+        if isinstance(result, Iterable):  # pragma: no cover
+            typed_result = cast(Iterable[typing.Blame], result)
+            for blame in typed_result:
+                change = files[blame.file_name]
 
-            for _, index, email, date in _blame(
-                    the_line_number=affected_lines,
-                    file_name=the_file):
-
-                if the_file not in files:
-                    files[the_file] = {}
-
-                files[the_file][index] = {
-                    'email': email,
-                    'date': date
+                change[blame.line_number] = {
+                    'email': blame.email,
+                    'date': blame.date
                 }
+            continue
 
     LOG.info("Git diff detected %r filed affected", len(files))
+    if LOG.isEnabledFor(logging.DEBUG):
+        LOG.info("Changed files: \n%s", json.dumps(files, indent=4))
+
     return files

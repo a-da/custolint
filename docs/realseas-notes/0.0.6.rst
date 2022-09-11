@@ -1,0 +1,26 @@
+=======================
+Custolint v0.0.6
+=======================
+
+Custolint v0.0.6 was released.
+
+
+What's new
+----------
+
+- Add internal data typing out of not typed Dict and Tuple types.
+- Add bugfixes
+- Add 100% code coverage with unittest
+- Add make command ``make clean_docs``
+
+What's changed
+--------------
+
+- update python coverage config inside `<config.d/coverage.rc>`_ and `<setup.cfg>`_.
+- leave in `<config.d/pylintrc>`_ just recommended changes and
+  add a full config `<config.d/pylintrc.default.2.15.0>`_ to compare it later with it.
+- keep history of release note inside `<cods/release-notes/>`_ folder.
+
+.. What's deprecated
+.. -----------------
+

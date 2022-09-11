@@ -1,7 +1,7 @@
 """
 `PyLint <https://github.com/PyCQA/pylint>`_ integration.
 """
-from typing import Callable, Dict, Iterator
+from typing import Dict, Iterable, Iterator, Sequence, Union
 
 import re
 from pathlib import Path
@@ -9,19 +9,18 @@ from pathlib import Path
 from . import generics, typing
 
 
-def _filter(path: Path, message: str, line_number: int, cache: Dict[str, str]) -> bool:
+def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
     """
     Return True if we want to skip the check else False if we want this check
     """
-    test_files = re.compile(r"(test_.*|conftest)\.py")  # pylint:
 
-    if test_files.search(path.name):
-        if path not in cache:
-            cache[path] = path.read_bytes().decode().splitlines()
+    if path not in cache:
+        cache[path] = path.read_bytes().decode().splitlines()
 
-        content = cache[path]
+    content = cache[path]
 
-        line_content = content[line_number - 1]
+    line_content = content[line_number - 1]
+    if generics.TEST_FILES_REGEX.search(path.name):
         if "def test_" in line_content:
             if '(missing-function-docstring)' in message:
                 return True
@@ -32,13 +31,22 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[str, str]) -
         if " (protected-access)" in message:
             return True
 
-    if re.search(r"TODO: SPACE-\d+: ", message, re.IGNORECASE):  # ignore all TODO's marked with Jira reference
+    if all((
+        ' (missing-function-docstring)' in message,
+        re.search(r"^\s*def \w{4,}_\w{4,}(_\w{4,})+\(", line_content)
+    )):
+        return True
+
+    # ignore all TODO marked with Jira reference
+    if re.search(r"TODO: SPACE-\d+: ", message, re.IGNORECASE):
         return True
 
     return False
 
 
-def compare_with_main_branch(filters: Callable = (_filter, )) -> Iterator[typing.Lint]:
+def compare_with_main_branch(
+        filters: Iterable[typing.FiltersType] = (_filter, )
+) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
     """
     Compare all pylint messages against code different to target branch.
     """
