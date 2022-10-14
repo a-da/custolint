@@ -1,0 +1,20 @@
+name: Custolint
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: install python package
+        run: make update_pip install_dev
+
+      - name: validate
+        run: make validate

@@ -27,13 +27,16 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'pyramid'
 html_static_path = ['_static']
 
-_root_readme_rst = Path(__file__).parent.joinpath('..', 'README.rst')
-_content = _root_readme_rst.read_text()
-_content = _content.replace(' image:: ./docs/', ' image:: ./')
-_content = _content.replace(':name: given example', ':emphasize-lines: 6,7')
-_content = _content.replace('<./docs/', '<./')
-_readme_rst = Path(__file__).parent.joinpath('.', 'readme.rst')
 
-_readme_rst.write_text(_content)
+def update_readme() -> None:
+    _root_readme_rst = Path(__file__).parent.joinpath('..', 'README.rst')
+    _content = _root_readme_rst.read_text()
+    _content = _content.replace(' image:: ./docs/', ' image:: ./')
+    _content = _content.replace(':name: given example', ':emphasize-lines: 6,7')
+    _content = _content.replace('<./docs/', '<./')
+    _readme_rst = Path(__file__).parent.joinpath('.', 'readme.rst')
+
+    _readme_rst.write_text(_content)
 
 
+update_readme()
