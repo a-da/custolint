@@ -9,7 +9,9 @@ custolint - custom linter
 **Custolint** is a small library that help you to
 customize your existing code-validation pipeline.
 
-.. | build-status | | docs | | coverage(100%) |
+|Documentation| |Build Status| |Python Code Coverage| |License|
+
+.. | docs | | coverage(100%) |
 
 **Source Code**: `<https://github.com/a-da/custolint>`_.
 
@@ -145,7 +147,7 @@ How to run:
 How to contribute:
 ------------------
 
-For developers and contributors, see the instruction here `<docs/for_developers.rst>`_.
+For developers and contributors, see the instruction here `<./docs/for_developers.rst>`_.
 
 
 .. |Boromir Meme| image:: ./_static/Boromir-meme.jpg
@@ -157,3 +159,16 @@ For developers and contributors, see the instruction here `<docs/for_developers.
   :align: top
   :target: https://github.com/a-da/custolint
   :alt: Custolint logo
+
+.. example of build icon. TODO: integrate
+.. |Build Status| image:: https://img.shields.io/github/workflow/status/ada/ada/ada.svg
+
+.. |Python Code Coverage| image:: https://codecov.io/gh/devanshshukla99/pytest-intercept-remote/branch/main/graph/badge.svg?token=81U29FC82V
+    :alt: Python Code Coverage
+
+.. |License| image:: https://img.shields.io/badge/License-MIT-yellow.svg
+    :target: license.html
+    :alt: License
+
+.. |Documentation| image:: https://img.shields.io/readthedocs/custolint.svg
+    :alt: Documentation

@@ -6,4 +6,4 @@ dist/
 .coverage
 *.html
 docs/_build/
-
+docs/readme.rst
