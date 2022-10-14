@@ -9,7 +9,7 @@ custolint - custom linter
 **Custolint** is a small library that help you to
 customize your existing code-validation pipeline.
 
-|Documentation| |Build Status| |Python Code Coverage| |License|
+|Documentation| |Python Code Coverage| |License|
 
 .. | docs | | coverage(100%) |
 
