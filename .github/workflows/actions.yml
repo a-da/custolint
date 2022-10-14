@@ -1,11 +1,24 @@
-name: GitHub Actions Custolint First
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+name: Custolint
 on: [push]
+
 jobs:
-  Explore-GitHub-Actions:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: checkout repo content
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: install python package
+        run: make update_pip install
+
+      - name: validate
+        run: make validate
+
       - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
