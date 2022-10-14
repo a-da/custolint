@@ -28,7 +28,7 @@ html_theme = 'pyramid'
 html_static_path = ['_static']
 
 
-def update_readme():
+def update_readme() -> None:
     _root_readme_rst = Path(__file__).parent.joinpath('..', 'README.rst')
     _content = _root_readme_rst.read_text()
     _content = _content.replace(' image:: ./docs/', ' image:: ./')
@@ -38,5 +38,5 @@ def update_readme():
 
     _readme_rst.write_text(_content)
 
-update_readme()
 
+update_readme()
