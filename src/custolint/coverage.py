@@ -1,23 +1,39 @@
 """
-`Python Coverage <https://coverage.readthedocs.io/en/6.4.4/>`_ integration.
+==========================================================================
+`Python Coverage <https://coverage.readthedocs.io/en/6.4.4/>`_ integration
+==========================================================================
 
 1. Locate uncovered code source lines
 2. If the uncovered code is touched withing changes in current branch.
 3. Show only not tested file name and line to be covered with unittest.
 
-.. important:
+.. code-block:: bash
+    :caption: Final coverage custolint command
+
+    $ custolint coverage .coverage
+    # TODO add sample of log
+    file16.py: message
+
+.. important::
 
     Please ensure set ``source`` in the configuration,
     otherwise coverage will include just files covered by the tests.
 
-    TODO:
-    See config.d/.coveragerc
-    .. include: config.d/.coveragerc
+    .. literalinclude:: ../config.d/.coveragerc
+        :caption: config.d/.coveragerc
+        :language: ini
+        :start-at: [run]
+        :end-before: [report]
+        :emphasize-lines: 2
 
     or
-    .. include: setup.cfg
-        from: coverage:run
-        till: end coverage
+
+    .. literalinclude:: ../setup.cfg
+        :caption: setup.cfg
+        :language: ini
+        :start-at: [coverage:run]
+        :end-before: [coverage:report]
+        :emphasize-lines: 2
 """
 
 from typing import Iterator
@@ -63,8 +79,7 @@ def _process_missing_lines(
 
 def compare_with_main_branch(coverage_file_location: str) -> Iterator[typing.Coverage]:
     """
-    :param coverage_file_location: TODO: use it
-    :return:
+    Apply coverage check on the changes only
     """
     changes = git.changes()
 

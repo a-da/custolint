@@ -43,7 +43,7 @@ Given we have a project alike custolint, where we:
 2. changed a the function ``custolint/git.py:_blame``
 
 .. code-block:: bash
-    :name: given example
+    :emphasize-lines: 6,7
 
     $ tree
     ...
@@ -148,12 +148,12 @@ How to contribute:
 For developers and contributors, see the instruction here `<docs/for_developers.rst>`_.
 
 
-.. |Boromir Meme| image:: ./docs/_static/Boromir-meme.jpg
+.. |Boromir Meme| image:: ./_static/Boromir-meme.jpg
   :align: top
   :width: 100
   :alt: You cannot just take and (Boromir meme)
 
-.. |Custolint Logo| image:: ./docs/_static/custolint-logo-the-future-by-RAP-studio.png
+.. |Custolint Logo| image:: ./_static/custolint-logo-the-future-by-RAP-studio.png
   :align: top
   :target: https://github.com/a-da/custolint
   :alt: Custolint logo

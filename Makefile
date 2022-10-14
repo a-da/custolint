@@ -10,7 +10,8 @@ deploy_to_pypy: wheel validate
 	twine upload dist/*
 
 clean:
-	rm -rvf ./build ./dist .coverage ./src/custolint.egg-info/
+	rm -rvf ./build/ ./dist/ .coverage ./src/custolint.egg-info/ README.html ./.mypy_cache/
+	rm -rvf	./.pytest_cache/ ./tests/.pytest_cache/ ./htmlcov/
 	$(MAKE) --directory=docs clean_docs
 
 install:

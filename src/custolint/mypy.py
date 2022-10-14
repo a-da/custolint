@@ -1,5 +1,39 @@
 """
-`Mypy: Static Typing for Python <https://github.com/python/mypy>`_ integration.
+==============================================================================
+`Mypy: Static Typing for Python <https://github.com/python/mypy>`_ integration
+==============================================================================
+
+1. Find affected files
+
+.. code-block:: bash
+
+    $ git diff origin/main -U0 --diff-filter=ACMRTUXB
+    INFO:custolint.git:Git diff detected 16 filed affected
+
+2. Executing Mypy typing only on affected file
+
+.. code-block:: bash
+
+    $ mypy --config-file==config.d/.flake8 test_file1.py ... file16.py
+    TODO: add a real example
+    test_file1.py: message function does not return a value
+    ...
+    file16.py: message
+
+.. important:: if no configuration is provided custolint will fallback into strict mode
+
+    .. code-block:: bash
+
+        $ mypy --strict --show-error-codes file1.py ... file16.py
+
+
+3. Filter all original Mypy message with custolint rules
+
+.. code-block:: bash
+    :caption: Final Mypy custolint command
+
+    $ custolint mypy
+    file16.py: message
 """
 from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
 

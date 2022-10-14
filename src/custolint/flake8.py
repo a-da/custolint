@@ -1,5 +1,33 @@
 """
-`Flake8 <https://github.com/PyCQA/flake8>`_ integration.
+=======================================================
+`Flake8 <https://github.com/PyCQA/flake8>`_ integration
+=======================================================
+
+1. Find affected files
+
+.. code-block:: bash
+
+    $ git diff origin/main -U0 --diff-filter=ACMRTUXB
+    INFO:custolint.git:Git diff detected 16 filed affected
+
+2. Executing Flake8 linting only on affected file
+
+.. code-block:: bash
+
+    $ flake8 --config-file=config.d/.flake8 file1.py ... file16.py
+    TODO: add a rela example
+    file1.py: message CUSTOLINT_IGNORE_MATCH
+    ...
+    file16.py: message
+
+3. Filter all original Flake8 message with custolint rules
+
+.. code-block:: bash
+    :caption: Final Flake8 custolint command
+
+    $ custolint flake8
+    file16.py: message
+
 """
 from typing import Dict, Iterator, Sequence, Union
 

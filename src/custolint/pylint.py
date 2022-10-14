@@ -1,5 +1,33 @@
 """
-`PyLint <https://github.com/PyCQA/pylint>`_ integration.
+=======================================================
+`PyLint <https://github.com/PyCQA/pylint>`_ integration
+=======================================================
+
+1. Find affected files
+
+.. code-block:: bash
+
+    $ git diff origin/main -U0 --diff-filter=ACMRTUXB
+    INFO:custolint.git:Git diff detected 16 filed affected
+
+2. Executing PyLint typing only on affected file
+
+.. code-block:: bash
+
+    $ pylint --rcfile=config.d/pylintrc file1.py ... file16.py
+    TODO: add a real example
+    teste_file1.py: message missing-function-docstring
+    ...
+    file16.py: message
+
+3. Filter all original PyLint message with custolint rules
+
+.. code-block:: bash
+    :caption: Final PyLint custolint command
+
+    $ custolint pylint
+    file16.py: message
+
 """
 from typing import Dict, Iterable, Iterator, Sequence, Union
 
