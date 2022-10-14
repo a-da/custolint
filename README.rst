@@ -168,4 +168,5 @@ For developers and contributors, see the instruction here `<docs/for_developers.
     :alt: License
 
 .. |Documentation| image:: https://img.shields.io/readthedocs/custolint.svg
+    :target: https://custolint.readthedocs.io/en/latest/
     :alt: Documentation
