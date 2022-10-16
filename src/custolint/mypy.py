@@ -46,11 +46,9 @@ from pathlib import Path
 import bash
 from mypy import errorcodes
 
-from . import generics, git, typing
+from . import env, generics, git, typing
 
 LOG = logging.getLogger(__name__)
-
-CONFIG_FILE = "config.d/mypy.ini"
 
 
 def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[typing.Lint]:
@@ -148,8 +146,9 @@ def compare_with_main_branch(
         filters: Iterable[typing.FiltersType] = (_filter,)
 ) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
     """
-    Compare mypy putput against target branch
+    Compare mypy output against target branch
     """
+    # pylint: disable=too-many-locals
 
     changes = git.changes()
 
@@ -166,7 +165,8 @@ def compare_with_main_branch(
     _, tmp_path = tempfile.mkstemp()
     Path(tmp_path).write_text(paths)  # pylint: disable=unspecified-encoding
 
-    config_argument = f"--config-file={CONFIG_FILE}" if Path(CONFIG_FILE).exists() else ""
+    config = Path(env.CONFIG_D, "mypy.ini")
+    config_argument = f"--config-file={config}" if config.exists() else ""
     command_args = " ".join((
         "mypy",
         config_argument or "--strict --show-error-codes",

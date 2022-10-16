@@ -31,7 +31,7 @@ custolint_validate:
 	echo
 	custolint mypy
 
-validate: #custolint_validate
+validate: custolint_validate
 	pytest tests
 	pylint src --disable=fixme
 	flake8

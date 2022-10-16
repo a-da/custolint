@@ -33,7 +33,7 @@ from typing import Dict, Iterator, Sequence, Union
 
 from pathlib import Path
 
-from . import generics, typing
+from . import env, generics, typing
 
 
 # pylint: disable=unused-argument
@@ -49,7 +49,8 @@ def compare_with_main_branch() -> Iterator[Union[typing.Lint, typing.FiltersType
     """
     Compare all flake8 messages against code different to target branch.
     """
-    config_argument = "--config=config.d/.flake8" if Path("config.d/.flake8").exists() else ""
+    config = Path(env.CONFIG_D, '.flake8')
+    config_argument = f"--config={config}" if config.exists() else ""
     command = " ".join(("flake8", config_argument, "{lint_file}"))
     return generics.lint_compare_with_main_branch(
         execute_command=command,

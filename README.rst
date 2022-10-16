@@ -142,8 +142,6 @@ How to run:
     coverage run --rcfile=config.d/.coveragerc -m pytest
     custolint coverage config.d/.coverage
 
-
-
 How to contribute:
 ------------------
 

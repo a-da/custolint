@@ -194,7 +194,10 @@ def group_by_email_and_file_name(log: Iterable[typing.Coverage]) -> None:
         sys.exit(41)
 
 
-def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]]) -> None:
+def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]],
+                 *,
+                 contributors: Iterable[str] = tuple(),
+                 skip_contributors: Iterable[str] = tuple()) -> None:
     """
     Filter output by:
     - date range
@@ -202,14 +205,21 @@ def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]]) -> None:
     - exclude contributor
     """
     cache: Dict[Path, Sequence[str]] = {}
+
+    # get filters from env, configuration and cli
     filters_chain: List[typing.FiltersType] = []
 
     has_found_something = False
-    # get filter from env, configuration and cli
     for line in log:
 
         if callable(line):
             filters_chain.append(line)
+            continue
+
+        if contributors and line.email not in contributors:
+            continue
+
+        if skip_contributors and line.email in skip_contributors:
             continue
 
         do_continue = False
@@ -220,7 +230,8 @@ def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]]) -> None:
         if do_continue:
             continue
 
-        output('%s:%d %s', line.file_name, line.line_number, line.message)
+        output('%s:%d %s ## %s:%s',
+               line.file_name, line.line_number, line.message, line.email, line.date)
 
         has_found_something = True
 
