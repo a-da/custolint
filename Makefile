@@ -21,7 +21,6 @@ install_dev:
 	pip install -e .[dev,deploy_to_pip]
 
 custolint_validate:
-	rm -f .coverage
 	coverage run --rcfile=config.d/.coveragerc -m pytest
 	custolint coverage .coverage
 	echo
@@ -31,11 +30,12 @@ custolint_validate:
 	echo
 	custolint mypy
 
-validate: #custolint_validate
+validate: custolint_validate
 	pytest tests
 	pylint src --disable=fixme
 	flake8
 	mypy src
+	$(MAKE) docs
 
 .PHONY: docs
 docs:

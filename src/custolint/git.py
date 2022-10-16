@@ -5,35 +5,31 @@ from typing import Iterable, Iterator, Tuple, Union, cast
 from collections import defaultdict
 
 import logging
-import os
 import re
 import sys
 import json
 
 import bash
 
-from . import typing
+from . import env, typing
 
 LOG = logging.getLogger(__name__)
-
-BRANCH_ENV = 'CUSTOLINT_MAIN_BRANCH'
 
 
 def _autodetect_main_branch() -> str:
     """
     Autodetect main/default branch name.
 
-    .. important: autodetect can ve override with :py:const:`.BRANCH_ENV` os ENV.
+    .. important: autodetect can ve override with :py:const:`custolint.env.BRANCH_ENV` os ENV.
     """
-    branch_name = os.getenv(BRANCH_ENV)
-    if branch_name:
-        command = bash.bash(f'git branch -r --list origin/{branch_name}')
+    if env.BRANCH_NAME:
+        command = bash.bash(f'git branch -r --list origin/{env.BRANCH_NAME}')
         if command.code:
             logging.error('Branch name %r provided through OS env %r can not be found in git: %s',
-                          branch_name, BRANCH_ENV, command.stderr.decode())
+                          env.BRANCH_NAME, env.BRANCH_ENV, command.stderr.decode())
             sys.exit(command.code)
 
-        return branch_name
+        return env.BRANCH_NAME
 
     command = bash.bash('git remote show origin')
     if command.code:
@@ -117,7 +113,7 @@ def changes() -> typing.Changes:
     # Add new feature
     # 1. save last main branch commit hash into custolint.d/
     # 2. compare the remote main branch with custolint.d/latest_<main>_branch_hash.txt
-    # 3. If there is no connection to remote the consider true with a warning else
+    # 3. If there is no connection to remote to consider true with a warning else
     # If the check fails provide hints with warning how to sync the main branch
     #
     # git_pull_rebase_command = f"git pull --rebase origin {main_branch}"
@@ -130,7 +126,7 @@ def changes() -> typing.Changes:
     #
 
     the_file = ""
-    execute_command = f"git diff origin/{main_branch} -U0 --diff-filter=ACMRTUXB"
+    execute_command = f"git diff origin/{main_branch} -U0 --diff-filter=ACMRTUXB"  # noqa: spelling
     LOG.info("Execute git diff command %r", execute_command)
     command = bash.bash(execute_command)
 

@@ -1,4 +1,4 @@
-# Configuration file for the Sphinx documentation builder.
+"""Configuration file for the Sphinx documentation builder."""
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
@@ -29,14 +29,17 @@ html_static_path = ['_static']
 
 
 def update_readme() -> None:
+    """
+    Adjust root readme for documentation.
+    """
     _root_readme_rst = Path(__file__).parent.joinpath('..', 'README.rst')
-    _content = _root_readme_rst.read_text()
-    _content = _content.replace(' image:: ./docs/', ' image:: ./')
-    _content = _content.replace(':name: given example', ':emphasize-lines: 6,7')
-    _content = _content.replace('<./docs/', '<./')
+    _content = _root_readme_rst.read_bytes()
+    _content = _content.replace(b' image:: ./docs/', b' image:: ./')
+    _content = _content.replace(b':name: given example', b':emphasize-lines: 6,7')
+    _content = _content.replace(b'<./docs/', b'<./')
     _readme_rst = Path(__file__).parent.joinpath('.', 'readme.rst')
 
-    _readme_rst.write_text(_content)
+    _readme_rst.write_bytes(_content)
 
 
 update_readme()

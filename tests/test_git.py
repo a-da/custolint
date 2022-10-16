@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List
+from typing import Callable, List, Optional
 
 from unittest import mock
 
@@ -46,8 +46,8 @@ def test_git_changes_success(_, patch_bash: Callable):
                 --- a/care/of/red/potato.py
                 +++ b/care/of/red/potato.py
                 @@ -310 +310 @@ def get_audit_log(
-                -def send_mail(subject: str, body: str, recipients: List[str], cc: List[str] = None, reply_to: Optional[str] = None):
-                +def send_mail(subject: str, body: str, recipients: List[str], reply_to: Optional[str] = None):
+                -def send_mail(subject: str, body: str, ..., cc: List[str] = None, reply_to: Optional[str] = None):
+                +def send_mail(subject: str, body: str, ..., reply_to: Optional[str] = None):
                 @@ -321,2 +320,0 @@ def send_mail(subject: str, body: str, recipients: List[str], cc: List[str] = No
                 -    cc: List[str]
                 -        List of email addresses to be included as CC. Empty list by default.
@@ -74,7 +74,7 @@ def test_git_changes_success(_, patch_bash: Callable):
         }
 
 
-def test_git_changes_error(patch_bash: Callable, caplog):
+def test_git_changes_error(patch_bash: Callable, caplog: LogCaptureFixture):
     with \
             mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
             patch_bash(stderr='no git installed', code=1), \
@@ -85,7 +85,7 @@ def test_git_changes_error(patch_bash: Callable, caplog):
     assert caplog.messages == ['Diff command failed: no git installed']
 
 
-def test_git_changes_debug_enabled(patch_bash: Callable, caplog):
+def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixture):
     with \
             mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
             mock.patch.object(git.LOG, 'isEnabledFor', return_value=True), \
@@ -201,7 +201,7 @@ def test_get_main_branch_default(patch_bash: Callable):
 
 def test_get_main_branch_override(patch_bash: Callable):
     with \
-            mock.patch.dict('os.environ', {git.BRANCH_ENV: 'main'}), \
+            mock.patch.object(git.env, 'BRANCH_NAME', 'main'), \
             patch_bash(
                 stdout="""
                     $ git branch -r --list origin/main
@@ -213,29 +213,29 @@ def test_get_main_branch_override(patch_bash: Callable):
 
 
 @pytest.mark.parametrize(
-    'env, stderr, log_message',
+    'branch_name, stderr, log_message',
     (
         pytest.param(
-            {git.BRANCH_ENV: 'main'}, 'no-branch',
+            'main', 'no-branch',
             "Branch name 'main' provided through OS env "
             "'CUSTOLINT_MAIN_BRANCH' can not be found in git: no-branch",
             id='override'
         ),
         pytest.param(
-            {}, 'some-git-error',
+            '', 'some-git-error',
             "Could not find default/main branch: 'some-git-error'",
             id='no-override'
         ),
     )
 )
 def test_get_main_branch_error(
-        env: Dict[str, str],
+        branch_name: Optional[str],
         stderr: str,
         log_message: str,
         caplog: LogCaptureFixture,
         patch_bash: Callable):
     with \
-            mock.patch.dict('os.environ', env, clear=True), \
+            mock.patch.object(git.env, 'BRANCH_NAME', branch_name), \
             patch_bash(stderr=stderr, code=1), \
             pytest.raises(SystemExit):
 

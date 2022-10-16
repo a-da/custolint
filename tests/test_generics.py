@@ -203,7 +203,23 @@ def test_filter_output_with_true_filter():
                     date='today',
                     email='email'
                 ),
-            ]
+                typing.Lint(
+                    file_name="file_name",
+                    line_number=1,
+                    message="message",
+                    date='today',
+                    email='true.contributor'
+                ),
+                typing.Lint(
+                    file_name="file_name",
+                    line_number=1,
+                    message="message",
+                    date='today',
+                    email='false.contributor'
+                ),
+            ],
+            contributors=['true.contributor'],
+            skip_contributors=['false.contributor']
         )
 
     output.assert_called_with('::Dry and Clean::')
@@ -227,6 +243,64 @@ def test_filter_output_with_false_filter():
                 ),
             ]
         )
+
+
+@pytest.mark.parametrize('kwargs, expect', (
+    pytest.param({}, [
+        mock.call('%s:%d %s ## %s:%s', 'file_name1', 1, 'message', 'not.in.contributor', 'today'),
+        mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
+        mock.call('%s:%d %s ## %s:%s', 'file_name3', 1, 'message', 'false.contributor', 'today')
+    ]),
+    pytest.param({'contributors': ['true.contributor']}, [
+        mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
+    ]),
+    pytest.param({'skip_contributors': ['false.contributor']}, [
+        mock.call('%s:%d %s ## %s:%s', 'file_name1', 1, 'message', 'not.in.contributor', 'today'),
+        mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
+    ]),
+    pytest.param(
+        {
+            'contributors': ['true.contributor'],
+            'skip_contributors': ['false.contributor']
+        },
+        [
+            mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
+        ]
+    ),
+))
+def test_filter_output_with_contributors(kwargs, expect):
+    with \
+            mock.patch.object(generics, 'output') as output, \
+            pytest.raises(SystemExit, match='41'):
+
+        generics.filer_output(
+            [
+                typing.Lint(
+                    file_name="file_name1",
+                    line_number=1,
+                    message="message",
+                    date='today',
+                    email='not.in.contributor'
+                ),
+                typing.Lint(
+                    file_name="file_name2",
+                    line_number=1,
+                    message="message",
+                    date='today',
+                    email='true.contributor'
+                ),
+                typing.Lint(
+                    file_name="file_name3",
+                    line_number=1,
+                    message="message",
+                    date='today',
+                    email='false.contributor'
+                ),
+            ],
+            **kwargs
+        )
+
+    assert output.call_args_list == expect
 
 
 @pytest.mark.parametrize('chunk,grouped', (
