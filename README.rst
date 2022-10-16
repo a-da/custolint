@@ -158,8 +158,9 @@ For developers and contributors, see the instruction here `<docs/for_developers.
   :target: https://github.com/a-da/custolint
   :alt: Custolint logo
 
-.. |Python Code Coverage| image:: https://codecov.io/gh/devanshshukla99/pytest-intercept-remote/branch/main/graph/badge.svg?token=81U29FC82V
-    :alt: Python Code Coverage
+.. |Python Code Coverage| image:: https://codecov.io/github/a-da/custolint/branch/main/graph/badge.svg?token=MU42A9NAT2
+  :target: https://codecov.io/github/a-da/custolint
+  :alt: Python Code Coverage
 
 .. |License| image:: https://img.shields.io/badge/License-MIT-yellow.svg
     :target: license.html
