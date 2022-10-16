@@ -22,6 +22,7 @@ install_dev:
 
 custolint_validate:
 	rm -f .coverage
+	git branch -a
 	coverage run --rcfile=config.d/.coveragerc -m pytest
 	custolint coverage .coverage
 	echo
