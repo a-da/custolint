@@ -35,6 +35,7 @@ validate: custolint_validate
 	pylint src --disable=fixme
 	flake8
 	mypy src
+	$(MAKE) docs
 
 .PHONY: docs
 docs:
