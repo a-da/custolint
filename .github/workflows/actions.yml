@@ -22,9 +22,21 @@ jobs:
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v3
         with:
-          token: MU42A9NAT2
+          # token: MU42A9NAT2
           files: ./coverage.xml
+
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: docs.tar
+          path: docs.tar
+          retention-days: 1
 
       #- name: Report coverage
       #  run: ls -lah && curl -Os https://uploader.codecov.io/latest/linux/codecov
       #          && chmod +x codecov && ./codecov -f ./coverage.xml
+
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

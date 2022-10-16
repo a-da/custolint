@@ -166,6 +166,6 @@ For developers and contributors, see the instruction here `<docs/for_developers.
     :target: license.html
     :alt: License
 
-.. |Documentation| image:: https://img.shields.io/readthedocs/custolint.svg
-    :target: https://custolint.readthedocs.io/en/latest/
-    :alt: Documentation
+.. |Documentation| image:: https://readthedocs.org/projects/custolint/badge/?version=latest
+    :target: https://custolint.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status

@@ -35,7 +35,7 @@ validate: custolint_validate
 	pylint src --disable=fixme
 	flake8
 	mypy src
-	$(MAKE) docs
+	$(MAKE) docs && tar -cvf docs.tar docs
 
 .PHONY: docs
 docs:
