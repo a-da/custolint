@@ -17,7 +17,7 @@ jobs:
         run: make update_pip install_dev
 
       - name: validate
-        run: git fetch && make validate && coverage xml
+        run: git fetch && make validate wheel && coverage xml
 
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v3
