@@ -21,11 +21,6 @@ install_dev:
 	pip install -e .[dev,deploy_to_pip]
 
 custolint_validate:
-	rm -f .coverage
-	git branch -a
-	git fetch
-	git branch -a
-	pwd
 	coverage run --rcfile=config.d/.coveragerc -m pytest
 	custolint coverage .coverage
 	echo

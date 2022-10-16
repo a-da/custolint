@@ -17,7 +17,7 @@ jobs:
         run: make update_pip install_dev
 
       - name: validate
-        run: make validate && coverage xml
+        run: git fetch && make validate && coverage xml && ls -lah
 
       - name: Report coverage
-        run: curl -Os https://uploader.codecov.io/latest/linux/codecov && chmod +x codecov && ./codecov
+        run: ls -lah && curl -Os https://uploader.codecov.io/latest/linux/codecov && chmod +x codecov && ./codecov
