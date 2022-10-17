@@ -20,7 +20,7 @@ jobs:
         run: git fetch
 
       - name: validate and create wheel
-        run: validate wheel
+        run: make validate wheel
 
       - name: create coverage xml
         run: coverage xml
