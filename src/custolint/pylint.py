@@ -34,13 +34,14 @@ from typing import Dict, Iterable, Iterator, Sequence, Union
 import re
 from pathlib import Path
 
-from . import env, generics, typing
+from . import generics, typing
 
 
 def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
     """
     Return True if we want to skip the check else False if we want this check
     """
+    # pylint: disable=too-many-return-statements
 
     if path not in cache:
         cache[path] = path.read_bytes().decode().splitlines()
@@ -59,14 +60,23 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
         if " (protected-access)" in message:
             return True
 
+        if " (too-many-public-methods)" in message:
+            return True
+
     if all((
         ' (missing-function-docstring)' in message,
         re.search(r"^\s*def \w{4,}_\w{4,}(_\w{4,})+\(", line_content)
     )):
         return True
 
+    if all((
+        ' (logging-fstring-interpolation)' in message,
+        re.search(r"\w\.(critical|error|warning|info)\(", line_content)
+    )):
+        return True
+
     # ignore all TODO marked with Jira reference
-    if re.search(r"TODO: SPACE-\d+: ", message, re.IGNORECASE):
+    if re.search(r"TODO: [A-Z]{3,}-\d+: ", message, re.IGNORECASE):
         return True
 
     return False
@@ -78,8 +88,7 @@ def compare_with_main_branch(
     """
     Compare all pylint messages against code different to target branch.
     """
-    config = Path(env.CONFIG_D, "pylintrc")
-    config_argument = f"--rcfile={config}" if config.exists() else ""
+    config_argument = "--rcfile=config.d/pylintrc" if Path("config.d/pylintrc").exists() else ""
     command = " ".join(("pylint", config_argument, "{lint_file}"))
     return generics.lint_compare_with_main_branch(
         execute_command=command,

@@ -13,6 +13,7 @@ clean:
 	rm -rvf ./build/ ./dist/ .coverage ./src/custolint.egg-info/ README.html ./.mypy_cache/
 	rm -rvf	./.pytest_cache/ ./tests/.pytest_cache/ ./htmlcov/
 	$(MAKE) --directory=docs clean_docs
+	rm -f docs.tar
 
 install:
 	pip install custolint
@@ -35,7 +36,7 @@ validate: custolint_validate
 	pylint src --disable=fixme
 	flake8
 	mypy src
-	$(MAKE) docs
+	$(MAKE) docs && export LANG=en_US.UTF-8 LC_ALL=$LANG && tar -cvf docs.tar docs
 
 .PHONY: docs
 docs:

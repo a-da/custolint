@@ -28,3 +28,9 @@ jobs:
       #- name: Report coverage
       #  run: ls -lah && curl -Os https://uploader.codecov.io/latest/linux/codecov
       #          && chmod +x codecov && ./codecov -f ./coverage.xml
+
+      - name: Archive documentation
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage-report
+          path: docs.tar
