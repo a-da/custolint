@@ -19,8 +19,8 @@ jobs:
       - name: git fetch
         run: git fetch
 
-      - name: validate and create wheel
-        run: make validate wheel
+      - name: validate
+        run: make validate
 
       - name: create coverage xml
         run: coverage xml
@@ -36,10 +36,16 @@ jobs:
       #          && chmod +x codecov && ./codecov -f ./coverage.xml
 
       - name: Archive documentation
+        run: export LANG=en_US.UTF-8 LC_ALL=$LANG && tar -cvf docs.tar docs
+
+      - name: Archive documentation
         uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
           path: docs.tar
+
+      - name: validate
+        run: make wheel
 
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

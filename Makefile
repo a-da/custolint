@@ -36,7 +36,7 @@ validate: custolint_validate
 	pylint src --disable=fixme
 	flake8
 	mypy src
-	$(MAKE) docs && export LANG=en_US.UTF-8 LC_ALL=$LANG && tar -cvf docs.tar docs
+	$(MAKE) docs
 
 .PHONY: docs
 docs:
