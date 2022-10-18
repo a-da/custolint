@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: checkout repo content
         uses: actions/checkout@v3
-        fetch-depth: 0
+        # fetch-depth: 0
         #fetch-depth: 0
 
       - name: setup python
@@ -22,8 +22,8 @@ jobs:
       - name: install python package
         run: make update_pip install_dev
 
-      #- name: git fetch
-      #  run: git fetch
+      - name: git fetch
+        run: git fetch
 
       - name: validate
         run: make validate
@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repo content
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: setup python
         uses: actions/setup-python@v4
