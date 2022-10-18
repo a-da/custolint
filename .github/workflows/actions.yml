@@ -32,10 +32,10 @@ jobs:
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v3
         with:
-          token: MU42A9NAT2
+          #token: MU42A9NAT2
           flags: pytest
           files: ./coverage.xml
-          #fail_ci_if_error: true
+          fail_ci_if_error: true
           name: codecov
           verbose: true
 
