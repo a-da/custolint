@@ -35,7 +35,7 @@ jobs:
           token: MU42A9NAT2
           flags: pytest
           files: ./coverage.xml
-          fail_ci_if_error: true
+          #fail_ci_if_error: true
           name: codecov
           verbose: true
 
