@@ -45,7 +45,7 @@ jobs:
       - name: Upload documentation to artifactory
         uses: actions/upload-artifact@v3
         with:
-          name: code-coverage-report
+          name: docs.tar
           path: docs.tar
 
   release:
