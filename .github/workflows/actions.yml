@@ -1,5 +1,9 @@
 name: Custolint
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
@@ -30,21 +34,34 @@ jobs:
         with:
           token: MU42A9NAT2
           files: ./coverage.xml
-
-      #- name: Report coverage
-      #  run: ls -lah && curl -Os https://uploader.codecov.io/latest/linux/codecov
-      #          && chmod +x codecov && ./codecov -f ./coverage.xml
+          fail_ci_if_error: true
+          # ? name: codecov
 
       - name: Archive documentation
         run: export LANG=en_US.UTF-8 LC_ALL=$LANG && tar -cvf docs.tar docs
 
-      - name: Archive documentation
+      - name: Upload documentation to artifactory
         uses: actions/upload-artifact@v3
         with:
           name: code-coverage-report
           path: docs.tar
 
-      - name: validate
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: install python package
+        run: make update_pip install_dev
+
+      - name: Prepare wheel for PyPI
         run: make wheel
 
       - name: Publish a Python distribution to PyPI
