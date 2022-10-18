@@ -33,9 +33,11 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: MU42A9NAT2
+          flags: pytest
           files: ./coverage.xml
           fail_ci_if_error: true
-          # ? name: codecov
+          name: codecov
+          verbose: true
 
       - name: Archive documentation
         run: export LANG=en_US.UTF-8 LC_ALL=$LANG && tar -cvf docs.tar docs
