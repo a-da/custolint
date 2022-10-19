@@ -4,8 +4,6 @@ custolint - custom linter
 
 |Custolint Logo|
 
-.. make badges available https://docs.readthedocs.io/en/stable/badges.html
-
 **Custolint** is a small library that help you to
 customize your existing code-validation pipeline.
 
@@ -32,7 +30,7 @@ When you have a big old code base with thousands of lines, you can not just incl
 
 Instead, you just enable a tiny 1% of the checks, which is very disappointing for a decent developer.
 
-*You could enable those 100% check just for your your changes with "custolint"*.
+*You could enable those 100% check just for your changes with "custolint"*.
 
 Idea
 ----
@@ -42,7 +40,7 @@ Idea
 Given we have a project alike custolint, where we:
 
 1. added a function ``custolint/generics.py:filer_output``.
-2. changed a the function ``custolint/git.py:_blame``
+2. changed the function ``custolint/git.py:_blame``
 
 .. code-block:: bash
     :name: given example
