@@ -41,6 +41,11 @@ def test_process_line_error():
         None,
         id='skip-empty-lines'
     ),
+    pytest.param(
+        ['Success', ' no issues found in 2 source files'],
+        None,
+        id='skip-success'
+    ),
 ))
 def test_process_line_success(fields: Sequence[str], process_result: Optional[typing.Lint]):
     assert mypy._process_line(fields, {
