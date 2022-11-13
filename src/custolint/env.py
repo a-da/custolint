@@ -53,7 +53,8 @@ Override config.d directory with ``CUSTOLINT_CONFIG_D`` environment variable.
 
         $ CUSTOLINT_CONFIG_D=custolint.d custolint mypy
 
-To experimental introduce into the project without polluting file structure
+
+The configuration could be store into a different git repository
 
 .. code-block:: bash
 

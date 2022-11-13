@@ -30,14 +30,14 @@ When you have a big old code base with thousands of lines, you can not just incl
 
 Instead, you just enable a tiny 1% of the checks, which is very disappointing for a decent developer.
 
-*You could enable those 100% check just for your changes with "custolint"*.
+*You could enable those 100% checks just for your changes with "custolint"*.
 
 Idea
 ----
 
 .. TODO: draw a diagram.
 
-Given we have a project alike custolint, where we:
+Given we have a project alike this one, where we:
 
 1. added a function ``custolint/generics.py:filer_output``.
 2. changed the function ``custolint/git.py:_blame``
@@ -139,11 +139,6 @@ How to run:
     # 100% coverage checking for new commits
     coverage run --rcfile=config.d/.coveragerc -m pytest
     custolint coverage config.d/.coverage
-
-How to contribute:
-------------------
-
-For developers and contributors, see the instruction here `<docs/for_developers.rst>`_.
 
 
 .. |Boromir Meme| image:: ./docs/_static/Boromir-meme.jpg

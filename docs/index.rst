@@ -2,8 +2,6 @@
 
 .. include:: ./readme.rst
 
-.. include:: customisations.rst
-
 API Reference
 -------------
 
@@ -14,6 +12,7 @@ method, this part of the documentation is for you.
    :maxdepth: 3
 
    api
+   customisations
    release_notes/index
 
 Miscellaneous Pages

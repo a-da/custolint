@@ -2,7 +2,7 @@
 Customisations
 ==============
 
-Configuration through operation systems environments:
+Configuration through OS environments:
 
 .. automodule:: custolint.env
 

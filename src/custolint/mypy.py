@@ -80,6 +80,9 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
     if fields == ['']:
         return None
 
+    if len(fields) == 2 and fields[0] == "Success":
+        return None
+
     raise ValueError(str(fields))
 
 
