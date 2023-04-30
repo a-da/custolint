@@ -4,8 +4,7 @@ custolint - custom linter
 
 |Custolint Logo|
 
-**Custolint** is a small library that help you to
-customize your existing code-validation pipeline.
+Your current code-validation pipeline rules may be changed more easily using **custolint**.
 
 |Documentation| |Python Code Coverage| |License|
 
@@ -24,11 +23,11 @@ Custolint implements:
 Motivation
 ----------
 
-When you have a big old code base with thousands of lines, you can not just include a linter and enable 100% checks.
+You cannot just add a linter and activate 100% inspections when you have a large, ancient codebase with thousands of lines.
 
 |Boromir Meme|
 
-Instead, you just enable a tiny 1% of the checks, which is very disappointing for a decent developer.
+Instead, you only make 1% of the checks available, which is really frustrating for a decent developer.
 
 *You could enable those 100% checks just for your changes with "custolint"*.
 
@@ -39,8 +38,8 @@ Idea
 
 Given we have a project alike this one, where we:
 
-1. added a function ``custolint/generics.py:filer_output``.
-2. changed the function ``custolint/git.py:_blame``
+1. had added a function ``custolint/generics.py:filer_output``.
+2. had modified the function ``custolint/git.py:_blame``
 
 .. code-block:: bash
     :name: given example

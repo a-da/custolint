@@ -40,10 +40,11 @@ from typing import Iterator
 
 import logging
 import sys
+from pathlib import Path
 
 import bash
 
-from . import git, typing
+from . import env, git, typing
 
 LOG = logging.getLogger(__name__)
 
@@ -82,8 +83,15 @@ def compare_with_main_branch(coverage_file_location: str) -> Iterator[typing.Cov
     Apply coverage check on the changes only
     """
     changes = git.changes()
+    config = Path(env.CONFIG_D, '.coveragerc')
+    config_argument = f"--rcfile={config}" if config.exists() else "--show-missing"
+    execute_command = " ".join((
+        "coverage",
+        'report',
+        config_argument,
+        f"--data-file={coverage_file_location}"
+    ))
 
-    execute_command = f"coverage report --data-file={coverage_file_location} --show-missing"
     # --include=space/*
     LOG.info('execute coverage command: %r', execute_command)
 

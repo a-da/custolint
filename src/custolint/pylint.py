@@ -34,7 +34,7 @@ from typing import Dict, Iterable, Iterator, Sequence, Union
 import re
 from pathlib import Path
 
-from . import generics, typing
+from . import env, generics, typing
 
 
 def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
@@ -63,6 +63,9 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
         if " (too-many-public-methods)" in message:
             return True
 
+        if 'R0801: Similar lines in ' in message:
+            return True
+
     if all((
         ' (missing-function-docstring)' in message,
         re.search(r"^\s*def \w{4,}_\w{4,}(_\w{4,})+\(", line_content)
@@ -88,8 +91,10 @@ def compare_with_main_branch(
     """
     Compare all pylint messages against code different to target branch.
     """
-    config_argument = "--rcfile=config.d/pylintrc" if Path("config.d/pylintrc").exists() else ""
+    config = Path(env.CONFIG_D, 'pylintrc')
+    config_argument = f"--rcfile={config}" if config.exists() else ""
     command = " ".join(("pylint", config_argument, "{lint_file}"))
+
     return generics.lint_compare_with_main_branch(
         execute_command=command,
         filters=filters

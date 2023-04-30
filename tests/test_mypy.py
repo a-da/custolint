@@ -132,52 +132,83 @@ def test_compare_with_main_branch_some_files_affected(
         process_line.assert_called_with(expect, {'a.py': {1: 'contributor_a'}})
 
 
-@pytest.mark.parametrize('message, content, path', (
+@pytest.mark.parametrize('message, content, path, line_number', (
     pytest.param(
         'Some message [no-untyped-def]',
         ['def my_dummy_test_filter(*args, **kwargs) -> bool:'],
         Path('test_a.py'),
+        1,
         id='dummy-functions-in-test-files'
     ),
     pytest.param(
         'Module has no attribute "git" [attr-defined]',
         [' mock.patch.object(generics.git, "changes"'],
         Path('test_a.py'),
+        1,
         id='mock-transient-attribute'
+    ),
+    pytest.param(
+        'Module has no attribute "git" [attr-defined]',
+        [' mocker.patch.object(generics.git, "changes"'],
+        Path('test_a.py'),
+        1,
+        id='mock-transient-attribute'
+    ),
+    pytest.param(
+        'Module has no attribute "git" [attr-defined]',
+        [
+            ' mocker.patch.object(',
+            '     generics.git, "changes" ...'
+        ],
+        Path('test_a.py'),
+        2,
+        id='mock-transient-attribute-multiline'
     ),
     pytest.param(
         'Some message [type-arg]',
         ['def test_a(name):'],
         Path('test_a.py'),
+        1,
         id='type_arg'
     ),
     pytest.param(
         'Some message [no-untyped-def]',
         ['def test_a(name):'],
         Path('test_a.py'),
+        1,
         id='no-untyped-def'
     ),
     pytest.param(
         'Some message [attr-defined]',
         ['def test_a(name):'],
         Path('test_a.py'),
+        1,
         id='attr-defined'
     ),
     pytest.param(
         "Use \"-> None\" if function does not return a value",
         ['def test_a(name):'],
         Path('test_a.py'),
+        1,
         id='return-none'
     ),
     pytest.param(
         "dict-item",
         ['def test_a(name):'],
         Path('test_a.py'),
+        1,
+        id='dict-item'
+    ),
+    pytest.param(
+        "dict-item",
+        ['def test_a(name):'],
+        Path('test_a.py'),
+        1,
         id='dict-item'
     ),
 ))
-def test_filter_true_cache(message: str, content: List[str], path: Path):
-    assert mypy._filter(path, message, 1, {
+def test_filter_true_case(message: str, content: List[str], path: Path, line_number):
+    assert mypy._filter(path, message, line_number, {
         path: content
     })
 

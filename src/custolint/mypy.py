@@ -101,6 +101,7 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
         content = cache[path]
 
         line_content = content[line_number - 1]
+        previous_line_content = content[line_number - 2] if line_number - 2 >= 0 else None
 
         # pylint: disable=c-extension-no-member
         # if a function have a 'dummy' or 'mock' in word in its name
@@ -117,7 +118,13 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
         # test_b.py:78 Module has no attribute "git" [attr-defined]
         if all((
                 f" [{errorcodes.ATTR_DEFINED.code}]" in message,
-                re.search(r'mock\.patch\.object\(', line_content),
+                re.search(r'(mock|mocker)\.patch\.object\(', line_content),
+        )):
+            return True
+        # if the line is split check previous line
+        if previous_line_content and all((
+                f" [{errorcodes.ATTR_DEFINED.code}]" in message,
+                re.search(r'(mock|mocker)\.patch\.object\(', previous_line_content),
         )):
             return True
     # pylint: enable=duplicate-code

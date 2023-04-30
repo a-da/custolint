@@ -7,6 +7,7 @@ wheel: clean
 	python -m build . --wheel
 
 deploy_to_pypy: wheel validate
+	echo 'deploy have to be done by CI/CD pipeline' && exit 1
 	twine upload dist/*
 
 clean:

@@ -52,6 +52,7 @@ def compare_with_main_branch() -> Iterator[Union[typing.Lint, typing.FiltersType
     config = Path(env.CONFIG_D, '.flake8')
     config_argument = f"--config={config}" if config.exists() else ""
     command = " ".join(("flake8", config_argument, "{lint_file}"))
+
     return generics.lint_compare_with_main_branch(
         execute_command=command,
         filters=(_filter,)

@@ -73,6 +73,7 @@ def test_filter_false(path: Path, message: str):
     'Some Message (missing-module-docstring)',
     'Some Message (protected-access)',
     'todo: space-1234: do that',
+    'R0801: Similar lines in 1000 files'
 ))
 def test_filter_test_functions_true(message: str):
     assert pylint._filter(
