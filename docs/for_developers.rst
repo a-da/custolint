@@ -43,18 +43,4 @@ For developers
     git commit ...
     git push ...
 
-5. Push new package into PyPi
-
-.. code-block:: bash
-
-    $ make deploy_to_pypy
-    rm -rvf build dist
-    ...
-    python -m build . --wheel
-    ....
-    Successfully built custolint-...-py3-none-any.whl
-    twine upload dist/*
-    Uploading distributions to https://upload.pypi.org/legacy/
-    Enter your username: ...
-    Enter your password: ...
-    Uploading custolint-...-py3-none-any.whl
+5. Github Action will be triggered see https://github.com/a-da/custolint/actions
