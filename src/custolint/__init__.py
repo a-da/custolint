@@ -5,10 +5,5 @@
     Current version of "custolint" library.
 """
 import importlib.metadata
-import logging
-
-from . import env
-
-logging.basicConfig(level=env.LOG_LEVEL)
 
 VERSION = __version__ = importlib.metadata.version('custolint')

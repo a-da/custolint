@@ -1,5 +1,7 @@
 from typing import Callable, List, Optional
 
+import logging
+from contextlib import nullcontext as does_not_raise
 from unittest import mock
 
 from custolint import git, typing
@@ -63,7 +65,7 @@ def test_git_changes_success(_, patch_bash: Callable):
                 @@ -0,0 +1,146 @@
                 """):
 
-        assert git.changes() == {
+        assert git.changes(do_pull_rebase=False) == {
             'care/of/red/potato.py': {
                 310: {'date': '2021-06-25', 'email': 'gus.fring@some-domain.com'}},
             'care/of/yellow/banana.py': {
@@ -80,7 +82,7 @@ def test_git_changes_error(patch_bash: Callable, caplog: LogCaptureFixture):
             patch_bash(stderr='no git installed', code=1), \
             pytest.raises(SystemExit, match='1'):
 
-        git.changes()
+        git.changes(do_pull_rebase=False)
 
     assert caplog.messages == ['Diff command failed: no git installed']
 
@@ -91,7 +93,7 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
             mock.patch.object(git.LOG, 'isEnabledFor', return_value=True), \
             patch_bash(stdout='some message about diff'):
 
-        git.changes()
+        git.changes(do_pull_rebase=False)
 
     assert caplog.messages[2] == 'Git diff output some message about diff'
 
@@ -242,3 +244,161 @@ def test_get_main_branch_error(
         git._autodetect_main_branch()
 
     assert caplog.messages == [log_message]
+
+
+@pytest.mark.parametrize(
+    'stdout, stderr, code, raise_expect, log_messages',
+    (
+        pytest.param(
+            'git version 2.39.2 (Apple Git-143)',
+            '',
+            0,
+            does_not_raise(),
+            [],
+            id='equal'
+        ),
+        pytest.param(
+            'git version 200.39.2 (Apple Git-143)',
+            '',
+            0,
+            does_not_raise(),
+            [],
+            id='greater'
+        ),
+        pytest.param(
+            'git version 2.39.0 (Apple Git-143)',
+            '',
+            0,
+            does_not_raise(),
+            ["Be aware that current git version (2, 39, 0) is less than recomended (2, 39, 2)"],
+            id='lower'
+        ),
+        pytest.param(
+            '',
+            'git: command not found',
+            127,
+            pytest.raises(SystemExit, match='127'),
+            ['Could not find git version name: git: command not found'],
+            id='command-not-found'
+        ),
+    )
+)
+def test_check_git_version(  # pylint: disable=too-many-arguments
+        stdout: Optional[str],
+        stderr: str,
+        code: int,
+        raise_expect,
+        log_messages: List[str],
+        caplog: LogCaptureFixture,
+        patch_bash: Callable):
+    with patch_bash(stdout=stdout, stderr=stderr, code=code):
+        with raise_expect:
+            git._check_git_version()
+
+    assert caplog.messages == log_messages
+
+
+@pytest.mark.parametrize(
+    'stdout, stderr, code, raise_expect, log_messages',
+    (
+        pytest.param(
+            'NASA-124-improve_xxx',
+            '',
+            0,
+            does_not_raise(),
+            [],
+            id='NASA-124-improve_xxx'
+        ),
+        pytest.param(
+            '',
+            'git: command not found',
+            127,
+            pytest.raises(SystemExit, match='127'),
+            ['Could not find branch name: git: command not found'],
+            id='command-not-found'
+        ),
+    )
+)
+def test_current_branch_name(  # pylint: disable=too-many-arguments
+        stdout: Optional[str],
+        stderr: str,
+        code: int,
+        raise_expect,
+        log_messages: List[str],
+        caplog: LogCaptureFixture,
+        patch_bash: Callable):
+    with patch_bash(stdout=stdout, stderr=stderr, code=code):
+        with raise_expect:
+            assert 'NASA-124-improve_xxx' == git._current_branch_name()
+
+    assert caplog.messages == log_messages
+
+
+@pytest.mark.parametrize(
+    'stdout, stderr, code, log_messages',
+    (
+        pytest.param(
+            '\n'.join((
+                'From https://a.b.c/d/cfw/d-lib',
+                ' * branch                master    -> FETCH_HEAD',
+                'Successfully rebased and updated refs/heads/NASA-29550-Report_missing_series'
+            )),
+            '',
+            0,
+            [
+                "Execute git pull --rebase command 'git pull --rebase origin master'",
+                'git pull: From https://a.b.c/d/cfw/d-lib\n'
+                ' * branch                master    -> FETCH_HEAD\n'
+                'Successfully rebased and updated refs/heads/NASA-29550-Report_missing_series',
+
+                'HINTS: revert pull with: \n'
+                '>>> git reset --hard origin/NASA-29550-Report_missing_series'
+            ],
+            id='NASA-29550'
+        ),
+        pytest.param(
+            '',
+            'git: command not found',
+            127,
+            [
+                "Execute git pull --rebase command 'git pull --rebase origin master'",
+                'Pull command failed: git: command not found'
+            ],
+            id='command-not-found'
+        ),
+    )
+)
+def test_pull_rebase(  # pylint: disable=too-many-arguments
+        stdout: Optional[str],
+        stderr: str,
+        code: int,
+        log_messages: List[str],
+        caplog: LogCaptureFixture,
+        patch_bash: Callable):
+    with caplog.at_level(logging.INFO):
+        caplog.clear()
+        with patch_bash(stdout=stdout, stderr=stderr, code=code):
+            git._pull_rebase('master', 'NASA-29550-Report_missing_series')
+
+    assert caplog.messages == log_messages
+
+
+def test_git_sync_success(patch_bash: Callable):
+    with patch_bash() as mocked:
+        mocked.side_effect = [
+            mock.Mock(
+                stdout=b"git version 2.39.2 (Apple Git-143)",
+                code=0,
+            ),
+            mock.Mock(
+                stdout=b"* main",
+                code=0,
+            ),
+            mock.Mock(
+                stdout=(" From github.com:a-da/custolint\n"
+                        "  * branch            main       -> FETCH_HEAD\n"
+                        " Already up to date.\n").encode(),
+                code=0,
+            )
+        ]
+        git._git_sync(True, 'name')

@@ -1,7 +1,7 @@
 """
 API to get the affected code lines by comparing current branch to a target branch.
 """
-from typing import Iterable, Iterator, Tuple, Union, cast
+from typing import Iterable, Iterator, Tuple, Union, cast, Optional
 from collections import defaultdict
 
 import logging
@@ -14,6 +14,7 @@ import bash
 from . import env, typing
 
 LOG = logging.getLogger(__name__)
+MINIMUM_GIT_RECOMMEND_VERSION = (2, 39, 2)
 
 
 def _autodetect_main_branch() -> str:
@@ -100,7 +101,76 @@ def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Itera
     return _blame(affected_lines, file_name)
 
 
-def changes() -> typing.Changes:
+def _current_branch_name() -> str:
+    execute_command = "git branch --show-current"
+    LOG.info("Execute git diff command %r", execute_command)
+    command = bash.bash(execute_command)
+    if command.code:
+        logging.error('Could not find branch name: %s', command.stderr.decode())
+        sys.exit(command.code)
+
+    return cast(str, command.stdout.decode().strip())
+
+
+def _check_git_version() -> Tuple[int, ...]:
+    """
+    Show a warning if the git version used is lower than was tested with by developer
+
+    > git --version
+    git version 2.39.2 (Apple Git-143)
+
+    :return: a.b.c version format 2.39.2
+    """
+    execute_command = "git --version"
+
+    LOG.debug("Execute git diff command %r", execute_command)
+    command = bash.bash(execute_command)
+    if command.code:
+        logging.error('Could not find git version name: %s', command.stderr.decode())
+        sys.exit(command.code)
+
+    stdout = command.stdout.decode()
+    versions = tuple(int(version) for version in stdout.split()[2].split('.'))
+    if versions < MINIMUM_GIT_RECOMMEND_VERSION:
+        LOG.warning('Be aware that current git version %r is less than recomended %r',
+                    versions, MINIMUM_GIT_RECOMMEND_VERSION)
+
+    return versions
+
+
+def _pull_rebase(main_branch: str, current_branch_name: str) -> None:
+    """
+    git pull --rebase origin <main_branch>
+    """
+    execute_command = f"git pull --rebase origin {main_branch}"
+    LOG.info("Execute git pull --rebase command %r", execute_command)
+    command = bash.bash(execute_command)
+
+    if command.code:
+        logging.warning('Pull command failed: %s', command.stderr.decode())
+        return None
+
+    stdout = command.stdout.decode().strip()
+    LOG.info("git pull: %s", stdout)
+
+    LOG.info('HINTS: revert pull with: \n'
+             '>>> git reset --hard origin/%s', current_branch_name)
+
+    return None
+
+
+def _git_sync(do_pull_rebase: bool, main_branch: str) -> Optional[str]:
+    current_branch_name: Optional[str] = None
+
+    if do_pull_rebase:
+        _check_git_version()
+        current_branch_name = _current_branch_name()
+        _pull_rebase(main_branch, current_branch_name)
+
+    return current_branch_name
+
+
+def changes(do_pull_rebase: bool = True) -> typing.Changes:
     """
     Get diff changes of current branch against master branch and
     return a mapping of affected filename and line numbers
@@ -110,20 +180,7 @@ def changes() -> typing.Changes:
 
     files: typing.Changes = defaultdict(dict)
 
-    # Add new feature
-    # 1. save last main branch commit hash into custolint.d/
-    # 2. compare the remote main branch with custolint.d/latest_<main>_branch_hash.txt
-    # 3. If there is no connection to remote to consider true with a warning else
-    # If the check fails provide hints with warning how to sync the main branch
-    #
-    # git_pull_rebase_command = f"git pull --rebase origin {main_branch}"
-    # git_pull_rebase_result = bash.bash(git_pull_rebase_command)
-    # LOG.info("Sync main branch with current branch with command %r", git_pull_rebase_command)
-    #
-    # if git_pull_rebase_result.code:
-    #     logging.error('Sync command failed: %s', git_pull_rebase_result.stderr.decode())
-    #     sys.exit(git_pull_rebase_result.code)
-    #
+    _git_sync(do_pull_rebase, main_branch)
 
     the_file = ""
     execute_command = f"git diff origin/{main_branch} -U0 --diff-filter=ACMRTUXB"  # noqa: spelling

@@ -29,12 +29,70 @@
     file16.py: message
 
 """
-from typing import Dict, Iterable, Iterator, Sequence, Union
+from typing import Dict, Iterable, Iterator, Sequence, Union, Optional
 
 import re
 from pathlib import Path
 
 from . import env, generics, typing
+
+
+def _filter_test_function(message: str, line_content: str) -> bool:  # pylint: disable=too-many-return-statements
+    # :check-description: test methods does not require to provide docstring
+    if "def test_" in line_content:
+        if '(missing-function-docstring)' in message:
+            return True
+
+    # :check-description: fixtures in test does not require to provide docstring
+    # e.g. def mock_get_data(*_, **__):
+    if 'def mock_' in line_content:
+        return True
+
+    if ' (missing-module-docstring)' in message:
+        return True
+
+    if " (protected-access)" in message:
+        return True
+
+    if " (too-many-public-methods)" in message:
+        return True
+
+    if 'R0801: Similar lines in ' in message:
+        return True
+
+    return False
+
+
+def _filter_all_function(message: str,
+                         line_content: str,
+                         previous_line_content: Optional[str]) -> bool:
+    # :check-description:
+    # if function has embedded the description in the name do not ask for additional description
+    # e.g. ``def is_valid_target(``, ``update_calculation_id`` TODO: check for verbs in future
+    if all((
+            ' (missing-function-docstring)' in message,
+            re.search(r"^\s*def (\w{4,}|is|has|do)_\w{4,}(_\w{4,}|id)+\(", line_content)
+    )):
+        return True
+
+    # :check-description: if a property then do not ask for a description
+    if all(
+            ('@property' in (previous_line_content or ''),
+             ' (missing-function-docstring)' in message
+             )):
+        return True
+
+    if all((
+            ' (logging-fstring-interpolation)' in message,
+            re.search(r"\w\.(critical|error|warning|info)\(", line_content)
+    )):
+        return True
+
+    # ignore all TODO marked with Jira reference
+    if re.search(r"TODO: [A-Z]{3,}-\d+: ", message, re.IGNORECASE):
+        return True
+
+    return False
 
 
 def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
@@ -49,40 +107,14 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
     content = cache[path]
 
     line_content = content[line_number - 1]
+    previous_line_content = content[line_number - 2] if line_number - 2 >= 0 else None
+
     if generics.TEST_FILES_REGEX.search(path.name):
-        if "def test_" in line_content:
-            if '(missing-function-docstring)' in message:
-                return True
-
-        if ' (missing-module-docstring)' in message:
+        do_filter = _filter_test_function(message, line_content)
+        if do_filter:
             return True
 
-        if " (protected-access)" in message:
-            return True
-
-        if " (too-many-public-methods)" in message:
-            return True
-
-        if 'R0801: Similar lines in ' in message:
-            return True
-
-    if all((
-        ' (missing-function-docstring)' in message,
-        re.search(r"^\s*def \w{4,}_\w{4,}(_\w{4,})+\(", line_content)
-    )):
-        return True
-
-    if all((
-        ' (logging-fstring-interpolation)' in message,
-        re.search(r"\w\.(critical|error|warning|info)\(", line_content)
-    )):
-        return True
-
-    # ignore all TODO marked with Jira reference
-    if re.search(r"TODO: [A-Z]{3,}-\d+: ", message, re.IGNORECASE):
-        return True
-
-    return False
+    return _filter_all_function(message, line_content, previous_line_content)
 
 
 def compare_with_main_branch(

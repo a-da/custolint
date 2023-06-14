@@ -3,6 +3,9 @@
 `Mypy: Static Typing for Python <https://github.com/python/mypy>`_ integration
 ==============================================================================
 
+Logic:
+------
+
 1. Find affected files
 
 .. code-block:: bash
@@ -27,7 +30,8 @@
         $ mypy --strict --show-error-codes file1.py ... file16.py
 
 
-3. Filter all original Mypy message with custolint rules
+Filter all original Mypy message with custolint rules
+-----------------------------------------------------
 
 .. code-block:: bash
     :caption: Final Mypy custolint command
@@ -73,9 +77,9 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
             )
         return None
 
-    if len(fields) == 1 and re.search(r"Found .* errors in .* file|"
-                                      r"Success: no issues found in", fields[0]):
-        return None
+    if len(fields) == 1:
+        if re.search(r"Found .+ errors? in .+ files?", fields[0]):
+            return None
 
     if fields == ['']:
         return None
@@ -86,6 +90,66 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
     raise ValueError(str(fields))
 
 
+def _filter_test_function(message: str, line_content: str) -> bool:
+    """
+    SubCase of the ``_filter``function
+
+    TODO: Check in configuration what is considered test function
+    by default is ``def test_.*``
+    """
+    if "def test_" in line_content:
+        if f" [{errorcodes.TYPE_ARG.code}]" in message:
+            return True
+
+        if f" [{errorcodes.NO_UNTYPED_DEF.code}]" in message:
+            return True
+
+        if f" [{errorcodes.ATTR_DEFINED.code}]" in message:
+            return True
+
+        if "Use \"-> None\" if function does not return a value" in message:
+            return True
+
+        if "dict-item" in message:
+            return True
+
+    return False
+
+
+def _filter_test_function_attr_defined(message: str,
+                                       line_content: str,
+                                       previous_line_content: Optional[str]) -> bool:
+    mocking_line = re.compile(r'(mock|mocker)\.patch\.object\(')
+
+    # mock a transient attribute which is not declared in __all__
+    # e.g.
+    # mock.patch.object(generics.git, "changes", return_value={
+    # test_b.py:78 Module has no attribute "git" [attr-defined]
+    if all((
+            f" [{errorcodes.ATTR_DEFINED.code}]" in message,
+            mocking_line.search(line_content),
+    )):
+        return True
+
+    # if the line is split check previous lineform
+    if previous_line_content and all((
+            f" [{errorcodes.ATTR_DEFINED.code}]" in message,
+            mocking_line.search(previous_line_content),
+    )):
+        return True
+
+    # It is normal practice to patch private api in tests
+    # from a.b.c.d import e
+    # ORIGINAL_E_GET_TIME = e._get_time
+    if re.search(r'Module ".+" does not explicitly export attribute "_.+"', message):
+        return True
+
+    if 'Missing type parameters for generic type "Callable"  [type-arg]' in message:
+        return True
+
+    return False
+
+
 def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
     """
     Return True if we want to skip the check else False if we want this check
@@ -93,57 +157,33 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
     # pylint: disable=too-many-return-statements
 
     # pylint: disable=duplicate-code
+    if not generics.TEST_FILES_REGEX.search(path.name):
+        return False
 
-    if generics.TEST_FILES_REGEX.search(path.name):
-        if path not in cache:
-            cache[path] = path.read_bytes().decode().splitlines()
+    if path not in cache:
+        cache[path] = path.read_bytes().decode().splitlines()
 
-        content = cache[path]
+    content = cache[path]
 
-        line_content = content[line_number - 1]
-        previous_line_content = content[line_number - 2] if line_number - 2 >= 0 else None
+    line_content = content[line_number - 1]
+    previous_line_content = content[line_number - 2] if line_number - 2 >= 0 else None
 
-        # pylint: disable=c-extension-no-member
-        # if a function have a 'dummy' or 'mock' in word in its name
-        # then it can be skipped for check
-        if all((
-            f" [{errorcodes.NO_UNTYPED_DEF.code}]" in message,
-            re.search(r'def .*(dummy|mock).*\(', line_content),
-        )):
-            return True
+    # pylint: disable=c-extension-no-member
+    # if a function have a 'dummy' or 'mock' in word in its name
+    # then it can be skipped for check
+    if all((
+        f" [{errorcodes.NO_UNTYPED_DEF.code}]" in message,
+        re.search(r'def .*(dummy|mock).*\(', line_content),
+    )):
+        return True
 
-        # mock a transient attribute
-        # e.g.
-        # mock.patch.object(generics.git, "changes", return_value={
-        # test_b.py:78 Module has no attribute "git" [attr-defined]
-        if all((
-                f" [{errorcodes.ATTR_DEFINED.code}]" in message,
-                re.search(r'(mock|mocker)\.patch\.object\(', line_content),
-        )):
-            return True
-        # if the line is split check previous line
-        if previous_line_content and all((
-                f" [{errorcodes.ATTR_DEFINED.code}]" in message,
-                re.search(r'(mock|mocker)\.patch\.object\(', previous_line_content),
-        )):
-            return True
-    # pylint: enable=duplicate-code
+    do_filter = _filter_test_function_attr_defined(message, line_content, previous_line_content)
+    if do_filter:
+        return do_filter
 
-        if "def test_" in line_content:
-            if f" [{errorcodes.TYPE_ARG.code}]" in message:
-                return True
-
-            if f" [{errorcodes.NO_UNTYPED_DEF.code}]" in message:
-                return True
-
-            if f" [{errorcodes.ATTR_DEFINED.code}]" in message:
-                return True
-
-            if "Use \"-> None\" if function does not return a value" in message:
-                return True
-
-            if "dict-item" in message:
-                return True
+    do_filter = _filter_test_function(message, line_content)
+    if do_filter:
+        return do_filter
 
     return False
 

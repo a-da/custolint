@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pytest
 
 from custolint import pylint
@@ -68,19 +70,20 @@ def test_filter_false(path: Path, message: str):
     )
 
 
-@pytest.mark.parametrize('message', (
-    'Some Message (missing-function-docstring)',
-    'Some Message (missing-module-docstring)',
-    'Some Message (protected-access)',
-    'todo: space-1234: do that',
-    'R0801: Similar lines in 1000 files'
+@pytest.mark.parametrize('message, line_content', (
+    pytest.param('Some Message (missing-function-docstring)', b'def test_some_function():'),
+    pytest.param('Some Message (missing-module-docstring)', b'def test_some_function():'),
+    pytest.param('Some Message (protected-access)', b'def test_some_function():'),
+    pytest.param('todo: space-1234: do that', b'def test_some_function():'),
+    pytest.param('R0801: Similar lines in 1000 files', b'def test_some_function():'),
+    pytest.param('Some Message (missing-function-docstring)', b'def mock_get_data(*_, **__):')
 ))
-def test_filter_test_functions_true(message: str):
+def test_filter_test_functions_true(message: str, line_content: bytes):
     assert pylint._filter(
         path=path_mock(
             name='test_conf.py',
             **{
-                'read_bytes.return_value': b'def test_some_function():'
+                'read_bytes.return_value': line_content
             }
         ),
         message=message,
@@ -89,10 +92,11 @@ def test_filter_test_functions_true(message: str):
     )
 
 
-@pytest.mark.parametrize('message, file_name, line_content, is_filtered', (
+@pytest.mark.parametrize('message, file_name, previous_line_content, line_content, is_filtered', (
     pytest.param(
         'Some Message (missing-function-docstring)',
         'not_test_module.py',
+        None,
         'def filter_test_functions(',
         True,
         id='do-filter-missing-function-docstring'
@@ -100,6 +104,7 @@ def test_filter_test_functions_true(message: str):
     pytest.param(
         'Some Message (too-many-public-methods)',
         'test_module.py',
+        None,
         'something',
         True,
         id='do-filter-too-many-public-methods'
@@ -107,6 +112,7 @@ def test_filter_test_functions_true(message: str):
     pytest.param(
         'Some Message (logging-fstring-interpolation)',
         'module.py',
+        None,
         'log.info(f"{some_var}")',
         True,
         id='do-filter-logging-fstring-interpolation'
@@ -114,6 +120,7 @@ def test_filter_test_functions_true(message: str):
     pytest.param(
         'Some Message (logging-fstring-interpolation)',
         'module.py',
+        None,
         'log.debug(f"{some_var}")',
         False,
         id='do-not-filter-logging-fstring-interpolation'
@@ -121,23 +128,36 @@ def test_filter_test_functions_true(message: str):
     pytest.param(
         'Some Message (missing-function-docstring)',
         'not_test_module.py',
+        None,
         'def do_that(',
         False,
         id='do-not-filter'
     ),
+    pytest.param(
+        'Some Message (missing-function-docstring)',
+        'not_test_module.py',
+        "@property",
+        'def radius(self):',
+        True,
+        id='filter-a-property'
+    ),
 ))
 def test_filter_no_test_functions_true(message: str,
                                        file_name: str,
+                                       previous_line_content: Optional[str],
                                        line_content: str,
                                        is_filtered: bool):
     assert pylint._filter(
         path=path_mock(
             name=file_name,
             **{
-                'read_bytes.return_value': line_content.encode()
+                'read_bytes.return_value': "\n".join((
+                    (previous_line_content or ''),
+                    line_content
+                )).encode()
             }
         ),
         message=message,
-        line_number=1,
+        line_number=2,
         cache={}
     ) is is_filtered

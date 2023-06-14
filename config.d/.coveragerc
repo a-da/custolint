@@ -5,4 +5,7 @@ branch = True
 [report]
 show_missing = True
 exclude_lines =
-    pragma: no cover
+    pragma: no cover.*
+omit =
+    src/custolint/cli.py
+    src/custolint/log.py

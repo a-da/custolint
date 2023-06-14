@@ -130,7 +130,12 @@ def compare_with_main_branch(coverage_file_location: str) -> Iterator[typing.Cov
         # alike 'care/__init__.py 6 0 0 0 100%'
         if fields[-1] == "100%":
             continue
+        # TODO: find path and name of uncovered function/method and
+        # show it in missing coverage line
+        # do not show twice the same function/method
 
+        # TODO: to move it on top
+        # sort results of diffs as in pycharm
         if len(fields) > 4 and "Missing" not in fields[-1]:
             missing_coverage_lines = "".join(fields[6:]).split(",")
             for missing in missing_coverage_lines:

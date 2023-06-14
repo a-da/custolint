@@ -23,7 +23,8 @@ Custolint implements:
 Motivation
 ----------
 
-You cannot just add a linter and activate 100% inspections when you have a large, ancient codebase with thousands of lines.
+You cannot just add a linter and activate 100% inspections when you have a large,
+ancient codebase with thousands of lines.
 
 |Boromir Meme|
 
@@ -98,7 +99,7 @@ From pip
 
 .. code-block::
 
-    $ make install
+    $ make update_pip_and_wheel install
     pip install custolint
     Collecting custolint
       Downloading custolint-...-py3-none-any.whl (8.4 kB)
@@ -112,11 +113,14 @@ From GIT
 
     git clone https://github.com/a-da/custolint.git
 
+    cd custolint
+
     # prod
-    pip install .
+    $ make update_pip_and_wheel install
 
     # dev
-    pip install -e .[dev]
+    $ make update_pip_and_wheel install
+    make update_pip_and_wheel install_dev
 
 
 How to run:

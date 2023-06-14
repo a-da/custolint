@@ -32,14 +32,24 @@ def test_process_line_error():
         id='with-contributor'
     ),
     pytest.param(
-        ['Found 6 errors in 1 file'],
+        ['Found 6 errors in 2 files'],
         None,
-        id='skip-summary'
+        id='skip-summary-plural'
+    ),
+    pytest.param(
+        ['Found 1 error in 1 file'],
+        None,
+        id='skip-summary-singular'
     ),
     pytest.param(
         [''],
         None,
         id='skip-empty-lines'
+    ),
+    pytest.param(
+        ['Success', ' no issues found in 2 source files'],
+        None,
+        id='skip-success'
     ),
     pytest.param(
         ['Success', ' no issues found in 2 source files'],
@@ -200,11 +210,18 @@ def test_compare_with_main_branch_some_files_affected(
         id='dict-item'
     ),
     pytest.param(
-        "dict-item",
-        ['def test_a(name):'],
+        'Module "a.b.c.e" does not explicitly export attribute "_get_time"',
+        ['ORIGINAL_E_GET_TIME = e._get_time'],
+        Path('conftest.py'),
+        1,
+        id='export-attribute'
+    ),
+    pytest.param(
+        'Missing type parameters for generic type "Callable"  [type-arg]',
+        ['patch_bash: Callable):'],
         Path('test_a.py'),
         1,
-        id='dict-item'
+        id='skip-Callable-in-tests'
     ),
 ))
 def test_filter_true_case(message: str, content: List[str], path: Path, line_number):

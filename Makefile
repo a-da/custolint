@@ -1,6 +1,6 @@
 IGNORE_ERROR_EXIT ?= false
 
-update_pip:
+update_pip_and_wheel:
 	pip install -U pip wheel
 
 wheel: clean
@@ -20,11 +20,12 @@ install:
 	pip install custolint
 
 install_dev:
+	pip install -U pip wheel
 	pip install -e .[dev,deploy_to_pip]
 
 custolint_validate:
 	coverage run --rcfile=config.d/.coveragerc -m pytest
-	custolint coverage .coverage
+	custolint coverage --data-file=.coverage
 	echo
 	custolint pylint
 	echo
@@ -35,7 +36,7 @@ custolint_validate:
 validate: custolint_validate
 	pytest tests
 	pylint src --disable=fixme
-	flake8
+	flake8 src
 	mypy src
 	$(MAKE) docs
 

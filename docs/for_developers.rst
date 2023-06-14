@@ -10,9 +10,11 @@ For developers
 
 2. Install dev version
 
+... the same copy of snippet is available in readme, TODO: unify
+
 .. code-block:: bash
 
-    $ make install_dev
+    $ make update_pip_and_wheel install_dev
     pip install -e .[dev]
     Obtaining file:///Users/.../github.com/custolint
     Installing build dependencies ... done
@@ -35,6 +37,8 @@ For developers
     MAIN_BRANCH='master' custolint flake8
     ...
     MAIN_BRANCH='master' custolint mypy
+
+5. Increase version (manually) of the package to be release ``setup.cfg:version``
 
 4. Open Pull Request
 

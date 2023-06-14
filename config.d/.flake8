@@ -16,4 +16,3 @@ ignore =
     # E501 line too long
     # replaced by pylint
     E501,
-
