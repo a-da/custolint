@@ -18,7 +18,7 @@ jobs:
           python-version: '3.9'
 
       - name: install python package
-        run: make update_pip install_dev
+        run: make update_pip_and_wheel install_dev
 
       - name: git fetch
         run: git fetch
@@ -61,7 +61,7 @@ jobs:
           python-version: '3.9'
 
       - name: install python package
-        run: make update_pip install_dev
+        run: make update_pip_and_wheel install_dev
 
 #      - name: if test on previous version fail
 #        id: next_version
