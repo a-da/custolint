@@ -29,7 +29,7 @@
     file16.py: message
 
 """
-from typing import Dict, Iterable, Iterator, Sequence, Union, Optional
+from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
 
 import re
 from pathlib import Path

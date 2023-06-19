@@ -21,7 +21,7 @@ install:
 
 install_dev:
 	pip install -U pip wheel
-	pip install -e .[dev,deploy_to_pip]
+	pip install -e ".[dev,deploy_to_pip]"
 
 custolint_validate:
 	coverage run --rcfile=config.d/.coveragerc -m pytest
@@ -35,6 +35,7 @@ custolint_validate:
 
 validate: custolint_validate
 	pytest tests
+	isort src test
 	pylint src --disable=fixme
 	flake8 src
 	mypy src

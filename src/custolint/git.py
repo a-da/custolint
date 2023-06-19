@@ -1,13 +1,13 @@
 """
 API to get the affected code lines by comparing current branch to a target branch.
 """
-from typing import Iterable, Iterator, Tuple, Union, cast, Optional
-from collections import defaultdict
+from typing import Iterable, Iterator, List, Optional, Tuple, Union, cast
 
+import json
 import logging
 import re
 import sys
-import json
+from collections import defaultdict
 
 import bash
 
@@ -41,17 +41,39 @@ def _autodetect_main_branch() -> str:
     return re.search(r"HEAD branch: (.+)", stdout).group(1)  # type: ignore[union-attr]
 
 
-def _extract_email_and_date_from_blame(blame_line: str) -> Tuple[str, str]:
-    """
-    Extract email and date from blame message line
-    """
-    _, tail = blame_line.split("<", maxsplit=1)
-    email, tail = tail.split(">", maxsplit=1)
-    date, _ = tail.split(maxsplit=1)
-    return email, date
+def _split_as_blame_porcelain(output: str) -> Iterator[typing.Blame]:
+    buffer: List[str] = []
+
+    # 005661f440bcdfefb2fd41d4e781351471dfb3ef 26 33 1
+    head_re = re.compile(r'^[0-9a-f]{40} \d+ \d+')
+    for line in output.splitlines():
+        if buffer and head_re.search(line):
+            yield typing.Blame.from_porcelain(tuple(buffer))
+            buffer.clear()
+
+        buffer.append(line)
+
+    yield typing.Blame.from_porcelain(tuple(buffer))
 
 
 def _blame(the_line_number: str, file_name: str) -> Iterator[typing.Blame]:
+    """
+    Parse blame log to extract: author email, author name, date and  file_name
+
+    > git blame --line-porcelain -L 33,+1 --show-email --show-name -- setup.cfg
+    005661f440bcdfefb2fd41d4e781351471dfb3ef 26 33 1
+    author John Snow
+    author-mail <John.Snow@John.Snow.tld>
+    author-time 1661418629
+    author-tz +0200
+    committer John Snow
+    committer-mail <John.Snow@John.Snow.tld>
+    committer-time 1661418629
+    committer-tz +0200
+    summary make custolint installable
+    filename setup.cfg
+            bash==0.6
+    """
     if "-" in the_line_number:
         start, ends = [int(_) for _ in the_line_number.split("-")]
         plus_start = ends - start
@@ -63,7 +85,7 @@ def _blame(the_line_number: str, file_name: str) -> Iterator[typing.Blame]:
 
     # git blame -L 33,+1 --show-email -- helpers/src/banana_sdk/helpers/service_api/metadata.py
     # 6d2056da7 (<saul.goodman@some-domain.com> 2020-06-03 14:11:42 +0200 33)  if event_count > 0:
-    execute_command = f"git blame -L {start},+{plus_start} --show-email --  {file_name}"
+    execute_command = f"git blame --line-porcelain -L {start},+{plus_start} --  {file_name}"
     LOG.debug("Execute git blame command: %r", execute_command)
     command = bash.bash(execute_command)
 
@@ -73,14 +95,7 @@ def _blame(the_line_number: str, file_name: str) -> Iterator[typing.Blame]:
 
     stdout = command.stdout.decode().strip()
 
-    for index, line in enumerate(stdout.split("\n"), start=start):
-        email, date = _extract_email_and_date_from_blame(line)
-        yield typing.Blame(
-            file_name=file_name,
-            line_number=int(index),
-            email=email,
-            date=date
-        )
+    return _split_as_blame_porcelain(stdout)
 
 
 def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Iterator[typing.Blame]]:
@@ -211,6 +226,7 @@ def changes(do_pull_rebase: bool = True) -> typing.Changes:
                 change = files[blame.file_name]
 
                 change[blame.line_number] = {
+                    'author': blame.author,
                     'email': blame.email,
                     'date': blame.date
                 }

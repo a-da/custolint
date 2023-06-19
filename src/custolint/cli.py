@@ -1,60 +1,89 @@
 # pragma: no cover this module will not be covered by the tests,
 # since it is using most of ``click`` external already tested API
 """
-Command line interface API
+Command line interface API based on python click library
 """
+from typing import Any, Callable
+
+import functools
 import logging
 
 import click
 
-from . import coverage, flake8, generics, mypy, pylint, env, log
+from . import __version__, coverage, env, flake8, generics, log, mypy, pylint
+from .contributors import Contributors
 
+FuncType = Callable[..., None]
 LOG = logging.getLogger(__name__)
 
 
+@click.version_option(__version__)
 @click.group()
 def cli() -> None:
     """Another custom linter layer. See the commands bellow for supported layers."""
 
-# TODO if there are no changed files stop all and inform about this
-# TODO: in case of debug show the time in the log
-# TODO: make a colored logs
+
+def common_params(func: FuncType) -> FuncType:
+    """Share the same options across all commands"""
+    func_name = func.__name__[1:]
+
+    @click.option('--halt-on-N-messages',
+                  default=0,
+                  type=int,
+                  help='Fast halt when reaching N messages. '
+                       'Is taken in consideration only if greater the zero.')
+    @click.option('--skip-contributors',
+                  default='',
+                  help='Exclude contributors by name or emails,'
+                       'mutually exclusive with --contributors')
+    @click.option('--contributors',
+                  default='',
+                  help='Include only contributors by name or emails,'
+                       'mutually exclusive with --contributors')
+    @click.option('--log-level', type=click.Choice(log.LEVEL_NAMES))
+    @cli.command(name=func_name)
+    @functools.wraps(func)
+    def wrapper(log_level: str,
+                contributors: str,
+                skip_contributors: str,
+                halt_on_n_messages: int,
+                **kwargs: Any) -> Any:
+        try:
+            _contributors = Contributors.from_cli(contributors, skip_contributors)
+        except ValueError as value_error:
+            raise click.UsageError('Mutually exclusion for arguments '
+                                   '--skip-contributors and --contributor') from value_error
+
+        log.setup(log_level or env.LOG_LEVEL)
+        LOG.info('---- %s ------', func_name)
+        return func(_contributors, halt_on_n_messages, **kwargs)
+    return wrapper
 
 
-@click.option('--log-level')
-@cli.command(name='mypy')
-def _mypy(log_level: str) -> None:
-    log.setup(log_level or env.LOG_LEVEL)
-    LOG.info('---- mypy ------')
-    generics.filer_output(mypy.compare_with_main_branch())
+@common_params
+def _mypy(contributors: Contributors, halt_on_n_messages: int) -> None:
+    generics.filer_output(mypy.compare_with_main_branch(), contributors, halt_on_n_messages)
 
 
-@click.option('--log-level')
-@cli.command(name='pylint')
-def _pylint(log_level: str) -> None:
-    log.setup(log_level or env.LOG_LEVEL)
-    click.echo(click.style('---- pylint ------', fg='green'))
-    generics.filer_output(pylint.compare_with_main_branch())
+@common_params
+def _pylint(contributors: Contributors, halt_on_n_messages: int) -> None:
+    generics.filer_output(pylint.compare_with_main_branch(), contributors, halt_on_n_messages)
 
 
-@click.option('--log-level')
-@cli.command(name='flake8')
-def _flake8(log_level: str) -> None:
-    log.setup(log_level or env.LOG_LEVEL)
-    click.echo(click.style('---- flake8 ------', fg='green'))
-    generics.filer_output(flake8.compare_with_main_branch())
+@common_params
+def _flake8(contributors: Contributors, halt_on_n_messages: int) -> None:
+    generics.filer_output(flake8.compare_with_main_branch(), contributors, halt_on_n_messages)
 
 
-@click.option('--log-level')
 @click.option('--data-file',
+              type=click.Path(exists=True),
               help="Read coverage data for report generation from this file. "
                    "Defaults to '.coverage'. [env: COVERAGE_FILE]")
-@cli.command(name='coverage')
-def _coverage(data_file: str, log_level: str) -> None:
-    log.setup(log_level or env.LOG_LEVEL)
-    click.echo(click.style('---- coverage ------', fg='green'))
-
-    coverage_file_location = data_file
+@common_params
+def _coverage(contributors: Contributors, halt_on_n_messages: int, data_file: click.Path) -> None:
+    file_path = click.format_filename(data_file)  # type: ignore[arg-type]
     generics.group_by_email_and_file_name(
-        coverage.compare_with_main_branch(coverage_file_location)
+        log=coverage.compare_with_main_branch(file_path),
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages
     )

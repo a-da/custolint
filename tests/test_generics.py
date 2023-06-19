@@ -5,6 +5,12 @@ from unittest import mock
 import pytest
 
 from custolint import generics, typing
+from custolint.contributors import Contributors
+
+
+@pytest.fixture(scope='module', name='contributors')
+def _contributors() -> Contributors:
+    return Contributors.from_cli('', '')
 
 
 def test_lint_compare_with_main_branch_no_python_files_in_changes():
@@ -34,13 +40,15 @@ def test_lint_compare_with_main_branch_with_python_files_in_changes(patch_bash: 
                 'src/custolint/pylint.py': {
                     35: {
                         'email': 'a@b.c',
-                        'date': 'today'
+                        'date': 'today',
+                        'author': 'John Snow'
                     }
                 },
                 'src/custolint/generics.py': {
                     79: {
                         'email': 'a@b.c',
-                        'date': 'today'
+                        'date': 'today',
+                        'author': 'John Snow'
                     }
                 },
             }):
@@ -55,6 +63,7 @@ def test_lint_compare_with_main_branch_with_python_files_in_changes(patch_bash: 
         )) == [
             my_dummy_test_filter,
             typing.Lint(
+                author='John Snow',
                 file_name='src/custolint/pylint.py',
                 line_number=35,
                 message='0: C0301: Line too long (111/100) (line-too-long)',
@@ -62,6 +71,7 @@ def test_lint_compare_with_main_branch_with_python_files_in_changes(patch_bash: 
                 date='today'
             ),
             typing.Lint(
+                author='John Snow',
                 file_name='src/custolint/generics.py',
                 line_number=79,
                 message='9: W0511: TODO add parser (fixme)',
@@ -85,7 +95,8 @@ def test_lint_compare_with_main_branch_similarity(patch_bash: Callable):
                 'src/custolint/pylint.py': {
                     35: {
                         'email': 'a@b.c',
-                        'date': 'today'
+                        'date': 'today',
+                        'author': 'John Snow'
                     }
                 },
             }):
@@ -100,6 +111,7 @@ def test_lint_compare_with_main_branch_similarity(patch_bash: Callable):
         )) == [
             my_dummy_test_filter,
             typing.Lint(
+                author='John Snow',
                 file_name='src/custolint/pylint.py',
                 line_number=35,
                 message='0: XXXX: Similar lines in',
@@ -172,18 +184,29 @@ def test_parse_message_fail_to_parse():
         )
 
 
-def test_filter_output_has_found_something():
-    with pytest.raises(SystemExit, match='41'):
+@pytest.mark.parametrize("error_code, halt_on_n_messages", (
+    pytest.param(generics.SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED, 0, id='halt_on_0_messages'),
+    pytest.param(generics.SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES, 2, id='halt_on_2_messages'),
+))
+def test_filter_output_has_found_something(
+        error_code: int,
+        halt_on_n_messages: int,
+        contributors: Contributors):
+    with pytest.raises(SystemExit, match=str(error_code)):
         generics.filer_output(
-            [
+            log=[
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name",
-                    line_number=1,
+                    line_number=i,
                     message="message",
                     date='today',
                     email='email'
-                ),
-            ]
+                ) for i in range(1, 5)
+
+            ],
+            contributors=contributors,
+            halt_on_n_messages=halt_on_n_messages
         )
 
 
@@ -194,9 +217,10 @@ def test_filter_output_with_true_filter():
 
     with mock.patch.object(generics, 'output') as output:
         generics.filer_output(
-            [
+            log=[
                 my_dummy_test_filter,
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name",
                     line_number=1,
                     message="message",
@@ -204,6 +228,7 @@ def test_filter_output_with_true_filter():
                     email='email'
                 ),
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name",
                     line_number=1,
                     message="message",
@@ -211,6 +236,7 @@ def test_filter_output_with_true_filter():
                     email='true.contributor'
                 ),
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name",
                     line_number=1,
                     message="message",
@@ -218,64 +244,118 @@ def test_filter_output_with_true_filter():
                     email='false.contributor'
                 ),
             ],
-            contributors=['true.contributor'],
-            skip_contributors=['false.contributor']
+            contributors=Contributors.from_cli('true.contributor', ''),
+            halt_on_n_messages=0
         )
 
     output.assert_called_with('::Dry and Clean::')
 
 
-def test_filter_output_with_false_filter():
+def test_filter_output_with_false_filter(contributors: Contributors):
     def my_dummy_test_filter(*args, **kwargs) -> bool:
         del args, kwargs
         return False
 
-    with pytest.raises(SystemExit, match='41'):
+    with pytest.raises(SystemExit, match=str(generics.SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED)):
         generics.filer_output(
-            [
+            log=[
                 my_dummy_test_filter,
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name",
                     line_number=1,
                     message="message",
                     date='today',
                     email='email'
                 ),
-            ]
+            ],
+            contributors=contributors,
+            halt_on_n_messages=0
         )
 
 
-@pytest.mark.parametrize('kwargs, expect', (
-    pytest.param({}, [
-        mock.call('%s:%d %s ## %s:%s', 'file_name1', 1, 'message', 'not.in.contributor', 'today'),
-        mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
-        mock.call('%s:%d %s ## %s:%s', 'file_name3', 1, 'message', 'false.contributor', 'today')
-    ]),
-    pytest.param({'contributors': ['true.contributor']}, [
-        mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
-    ]),
-    pytest.param({'skip_contributors': ['false.contributor']}, [
-        mock.call('%s:%d %s ## %s:%s', 'file_name1', 1, 'message', 'not.in.contributor', 'today'),
-        mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
-    ]),
+@pytest.mark.parametrize('white, black, expect', (
     pytest.param(
-        {
-            'contributors': ['true.contributor'],
-            'skip_contributors': ['false.contributor']
-        },
+        '',
+        '',
         [
-            mock.call('%s:%d %s ## %s:%s', 'file_name2', 1, 'message', 'true.contributor', 'today'),
-        ]
+            mock.call(
+                '%s:%d %s ## %s:%s',
+                'file_name1',
+                1,
+                'message',
+                'not.in.contributor',
+                'today'
+            ),
+            mock.call(
+                '%s:%d %s ## %s:%s',
+                'file_name2',
+                1,
+                'message',
+                'true.contributor',
+                'today'
+            ),
+            mock.call(
+                '%s:%d %s ## %s:%s',
+                'file_name3',
+                1,
+                'message',
+                'false.contributor',
+                'today'
+            )
+        ],
+        id='no-contributors'
+    ),
+    pytest.param(
+        '',
+        'false.contributor',
+        [
+            mock.call(
+                '%s:%d %s ## %s:%s',
+                'file_name1', 1,
+                'message',
+                'not.in.contributor',
+                'today'
+            ),
+            mock.call(
+                '%s:%d %s ## %s:%s',
+                'file_name2',
+                1,
+                'message',
+                'true.contributor',
+                'today'
+            ),
+        ],
+        id='exclude-contributors'
+    ),
+    pytest.param(
+        'true.contributor',
+        '',
+        [
+            mock.call(
+                '%s:%d %s ## %s:%s',
+                'file_name2',
+                1,
+                'message',
+                'true.contributor',
+                'today'
+            ),
+        ],
+        id='include-contributors'
     ),
 ))
-def test_filter_output_with_contributors(kwargs, expect):
+def test_filter_output_with_contributors(white: str, black: str, expect: Sequence):
+    contributors = Contributors.from_cli(white, black)
+
     with \
             mock.patch.object(generics, 'output') as output, \
-            pytest.raises(SystemExit, match='41'):
+            pytest.raises(SystemExit,
+                          match=str(generics.SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED)):
 
         generics.filer_output(
-            [
+            log=[
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name1",
                     line_number=1,
                     message="message",
@@ -283,6 +363,7 @@ def test_filter_output_with_contributors(kwargs, expect):
                     email='not.in.contributor'
                 ),
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name2",
                     line_number=1,
                     message="message",
@@ -290,6 +371,7 @@ def test_filter_output_with_contributors(kwargs, expect):
                     email='true.contributor'
                 ),
                 typing.Lint(
+                    author='John Snow',
                     file_name="file_name3",
                     line_number=1,
                     message="message",
@@ -297,10 +379,17 @@ def test_filter_output_with_contributors(kwargs, expect):
                     email='false.contributor'
                 ),
             ],
-            **kwargs
+            contributors=contributors,
+            halt_on_n_messages=0
         )
 
     assert output.call_args_list == expect
+
+
+def test_filter_output_with_contributors_black_and_white():
+    with pytest.raises(ValueError,
+                       match='Mutually exclusion for ``white`` and ``black`` arguments'):
+        Contributors.from_cli('white', 'black')
 
 
 @pytest.mark.parametrize('chunk,grouped', (
@@ -309,6 +398,7 @@ def test_filter_output_with_contributors(kwargs, expect):
 ))
 def test_output_grouping_by_email_and_file_name(chunk, grouped):
     contributor = typing.Contributor(
+        author='John Snow',
         email='a@b.c',
         date='today'
     )
@@ -325,18 +415,22 @@ def test_output_grouping_by_email_and_file_name(chunk, grouped):
         output.assert_called_with('%s:%s %05s %s', 'a.py', grouped, 'a@b.c', 'today')
 
 
-def test_group_by_email_and_file_name_empty_log():
+def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
     with mock.patch.object(generics, 'output') as output:
-        generics.group_by_email_and_file_name([])
+        generics.group_by_email_and_file_name(
+            log=[],
+            contributors=contributors,
+            halt_on_n_messages=0)
 
         output.assert_called_with("::Dry and Clean::")
 
 
-@pytest.mark.parametrize('log, expect_output', (
+@pytest.mark.parametrize('log, halt_on_n_messages, expect_output', (
     pytest.param(
         [
             typing.Coverage(
                 contributor=typing.Contributor(
+                    author='John Snow',
                     email='a@b.c',
                     date='date'
                 ),
@@ -344,14 +438,17 @@ def test_group_by_email_and_file_name_empty_log():
                 line_number=1,
             )
         ],
+        0,
         [
             mock.call('%s:%s %05s %s', 'a.py', '1', 'a@b.c', 'date'),
-        ]
+        ],
+        id='single-line'
     ),
     pytest.param(
         [
             typing.Coverage(
                 contributor=typing.Contributor(
+                    author='John Snow',
                     email='a@b.c',
                     date='date'
                 ),
@@ -361,6 +458,7 @@ def test_group_by_email_and_file_name_empty_log():
         ] + [
             typing.Coverage(
                 contributor=typing.Contributor(
+                    author='John Snow',
                     email='a@b.c',
                     date='date'
                 ),
@@ -368,15 +466,76 @@ def test_group_by_email_and_file_name_empty_log():
                 line_number=1,
             )
         ],
+        0,
         [
             mock.call('%s:%s %05s %s', 'a.py', '1-4', 'a@b.c', 'date'),
             mock.call('%s:%s %05s %s', 'b.py', '1', 'a@b.c', 'date')
-        ]
+        ],
+        id='two-files'
+    ),
+    pytest.param(
+        [
+            typing.Coverage(
+                contributor=typing.Contributor(
+                    author='John Snow',
+                    email='a@b.c',
+                    date='date'
+                ),
+                file_name='a.py',
+                line_number=i,
+            ) for i in range(1, 5)
+        ],
+        2,
+        [
+            mock.call('%s:%s %05s %s', 'a.py', '1-2', 'a@b.c', 'date'),
+        ],
+        id='halt-on-2-messages'
+    ),
+    pytest.param(
+        [
+            typing.Coverage(
+                contributor=typing.Contributor(
+                    author='John Snow',
+                    email='a@b.c',
+                    date='date'
+                ),
+                file_name='a.py',
+                line_number=1,
+            ),
+            typing.Coverage(
+                contributor=typing.Contributor(
+                    author='Tony Stark',
+                    email='a@b.c',
+                    date='date'
+                ),
+                file_name='a.py',
+                line_number=2,
+            )
+        ],
+        0,
+        [
+            mock.call('%s:%s %05s %s', 'a.py', '1', 'a@b.c', 'date')
+        ],
+        id='only-john-snow-contributor-name'
     ),
 ))
-def test_group_by_email_and_file_name_with_log(log: Sequence, expect_output: Sequence):
-    with pytest.raises(SystemExit, match='41'), mock.patch.object(generics, 'output') as output:
+def test_group_by_email_and_file_name_with_log(
+        log: Sequence[typing.Coverage],
+        halt_on_n_messages: int,
+        expect_output: Sequence[str]):
 
-        generics.group_by_email_and_file_name(log)
+    error_code = (
+        generics.SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED
+        if not halt_on_n_messages else generics.SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES
+    )
+    with \
+            pytest.raises(SystemExit, match=str(error_code)), \
+            mock.patch.object(generics, 'output') as output:
+
+        generics.group_by_email_and_file_name(
+            log=log,
+            contributors=Contributors.from_cli('John Snow', ""),
+            halt_on_n_messages=halt_on_n_messages
+        )
 
     assert output.call_args_list == expect_output

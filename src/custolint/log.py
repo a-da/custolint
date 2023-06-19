@@ -9,6 +9,16 @@ from logging import config
 
 _CALLED_JUST_ONCE = True
 
+LEVEL_NAMES = (
+    'CRITICAL',
+    'FATAL',
+    'ERROR',
+    'WARNING',
+    'INFO',
+    'DEBUG',
+    'NOTSET'
+)
+
 
 def setup(log_level: Optional[str]) -> None:
     """

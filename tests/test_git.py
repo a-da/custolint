@@ -10,21 +10,10 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 
 
-@pytest.mark.parametrize("blame", [
-    (
-        '<gus.fring@some-domain.com> 2021-09-06 14:21:52 +0000 '
-        '61)     def value_to_pandas(value) -> pd.Period:"'
-    ),
-])
-def test_extract_email_and_date_from_blame(blame: str):
-    assert git._extract_email_and_date_from_blame(blame) == (
-        'gus.fring@some-domain.com', '2021-09-06'
-    )
-
-
 @mock.patch.object(git, "_blame", side_effect=[
     [
         typing.Blame(
+            author='John Snow',
             file_name='care/of/red/potato.py',
             line_number=310,
             email='gus.fring@some-domain.com',
@@ -33,6 +22,7 @@ def test_extract_email_and_date_from_blame(blame: str):
     ],
     [
         typing.Blame(
+            author='John Snow',
             file_name='care/of/yellow/banana.py',
             line_number=i,
             email='lalo.salamanca@some-domain.com',
@@ -67,11 +57,27 @@ def test_git_changes_success(_, patch_bash: Callable):
 
         assert git.changes(do_pull_rebase=False) == {
             'care/of/red/potato.py': {
-                310: {'date': '2021-06-25', 'email': 'gus.fring@some-domain.com'}},
+                310: {
+                    'author': 'John Snow',
+                    'date': '2021-06-25',
+                    'email': 'gus.fring@some-domain.com'
+                }},
             'care/of/yellow/banana.py': {
-                1: {'date': '2022-03-07', 'email': 'lalo.salamanca@some-domain.com'},
-                2: {'date': '2022-03-07', 'email': 'lalo.salamanca@some-domain.com'},
-                3: {'date': '2022-03-07', 'email': 'lalo.salamanca@some-domain.com'}
+                1: {
+                    'author': 'John Snow',
+                    'date': '2022-03-07',
+                    'email': 'lalo.salamanca@some-domain.com'
+                },
+                2: {
+                    'author': 'John Snow',
+                    'date': '2022-03-07',
+                    'email': 'lalo.salamanca@some-domain.com'
+                },
+                3: {
+                    'author': 'John Snow',
+                    'date': '2022-03-07',
+                    'email': 'lalo.salamanca@some-domain.com'
+                }
             }
         }
 
@@ -103,16 +109,27 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
         'a/b/api/bar.py',
         ["310"],
         (
-            "938a7025ba (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 310) "
+            "005661f440bcdfefb2fd41d4e781351471dfb3ef 26 310 1\n"
+            "author John Snow\n"
+            "author-mail <john.snow@some-domain.eu>\n"
+            "author-time 1661418629\n"
+            "author-tz +0200\n"
+            "committer John Snow\n"
+            "committer-mail <john.snow@some-domain.eu>\n"
+            "committer-time 1661418629\n"
+            "committer-tz +0200\n"
+            "summary make custolint installable\n"
+            "filename a/b/api/bar.py\n"
             "def foo(subject: str, reply_to: Optional[str] = None):"
         ),
-        'git blame -L 310,+1 --show-email --  a/b/api/bar.py',
+        'git blame --line-porcelain -L 310,+1 --  a/b/api/bar.py',
         [
             typing.Blame(
+                author='John Snow',
                 file_name='a/b/api/bar.py',
                 line_number=310,
                 email='john.snow@some-domain.eu',
-                date='2022-05-06'
+                date='2022-08-25'
             )
         ],
         id='concrete_line_number'
@@ -120,45 +137,58 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
     pytest.param(
         'a/b/api/bar.py', ["1,3"],
         (
-            "938a7025ba (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 1) "
-            "def foo(subject: str, reply_to: Optional[str] = None):\n"
-            "1435a446cd (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 2) "
-            "    a = 1\n"
-            "ac24534653 (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 3) "
-            "    return a"
+            "005661f440bcdfefb2fd41d4e781351471dfb3ef 1 1 2\n"
+            "author John Snow\n"
+            "author-mail <john.snow@some-domain.eu>\n"
+            "author-time 1661418629\n"
+            "author-tz +0200\n"
+            "committer John Snow\n"
+            "committer-mail <john.snow@some-domain.eu>\n"
+            "committer-time 1661418629\n"
+            "committer-tz +0200\n"
+            "summary make custolint installable\n"
+            "filename  a/b/api/bar.py\n"
+            "        [metadata]\n"
+
+            "005661f440bcdfefb2fd41d4e781351471dfb3ef 2 2\n"
+            "author John Snow\n"
+            "author-mail <john.snow@some-domain.eu>\n"
+            "author-time 1661418629\n"
+            "author-tz +0200\n"
+            "committer John Snow\n"
+            "committer-mail <john.snow@some-domain.eu>\n"
+            "committer-time 1661418629\n"
+            "committer-tz +0200\n"
+            "summary make custolint installable\n"
+            "filename  a/b/api/bar.py\n"
+            "        name = custolint\n"
+
+            "8a82ba664ee030ce7ed156972f1f5e364fb8f8a3 3 3 1\n"
+            "author John Snow\n"
+            "author-mail <john.snow@some-domain.eu>\n"
+            "author-time 1661418629\n"
+            "author-tz +0200\n"
+            "committer John Snow\n"
+            "committer-mail <john.snow@some-domain.eu>\n"
+            "committer-time 1686748144\n"
+            "committer-tz +0200\n"
+            "summary Version 0.2.1: properly handling cli and add color features\n"
+            "previous 6241256b9d5e8b37788f67bf5743b345c27badd6  a/b/api/bar.py\n"
+            "filename  a/b/api/bar.py\n"
+            "        version = 0.2.1\n"
         ),
-        'git blame -L 1,+3 --show-email --  a/b/api/bar.py',
+        'git blame --line-porcelain -L 1,+3 --  a/b/api/bar.py',
         [
             typing.Blame(
+                author='John Snow',
                 file_name='a/b/api/bar.py',
                 line_number=i,
                 email='john.snow@some-domain.eu',
-                date='2022-05-06'
+                date='2022-08-25'
             ) for i in [1, 2, 3]
         ],
         id='two_line_numbers'
     ),
-    pytest.param(
-        'a/b/api/bar.py', ["10-23"],
-        (
-            "938a7025ba (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 1) "
-            "def foo(subject: str, reply_to: Optional[str] = None):\n"
-            "1435a446cd (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 2) "
-            "    a = 1\n"
-            "ac24534653 (<john.snow@some-domain.eu> 2022-05-06 08:11:20 +0000 3) "
-            "    return a"
-        ),
-        'git blame -L 10,+13 --show-email --  a/b/api/bar.py',
-        [
-            typing.Blame(
-                file_name='a/b/api/bar.py',
-                line_number=i,
-                email='john.snow@some-domain.eu',
-                date='2022-05-06'
-            ) for i in [10, 11, 12]
-        ],
-        id='range_of_line_numbers'
-    )
 ])
 def test_blame(file_name: str,  # pylint: disable=too-many-arguments
                the_line_numbers: List[str],

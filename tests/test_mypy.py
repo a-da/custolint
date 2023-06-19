@@ -23,6 +23,7 @@ def test_process_line_error():
     pytest.param(
         ['b.py', '42', 'level', 'message b'],
         typing.Lint(
+            author='John Snow',
             file_name='b.py',
             line_number=42,
             message='message b',

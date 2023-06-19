@@ -1,9 +1,11 @@
-/.idea/
 *.egg-info/
+*.html
+.coverage
+.pytest_cache/
+/.idea/
 __pycache__/
 build/
 dist/
-.coverage
-*.html
 docs/_build/
 docs/readme.rst
+.mypy_cache

@@ -1,7 +1,8 @@
 """
 Keep here all tools, helpers and utility API.
 """
-from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import (Dict, Iterable, Iterator, List, Optional, Sequence, Tuple,
+                    Union)
 
 import builtins
 import logging
@@ -12,8 +13,12 @@ from pathlib import Path
 import bash
 
 from . import git, typing
+from .contributors import Contributors
 
 LOG = logging.getLogger(__name__)
+SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED = 41
+SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES = 42
+
 
 TEST_FILES_REGEX = re.compile(r"(^|/)(test_.*|conftest)\.py")
 
@@ -72,7 +77,8 @@ def _process_line(fields: Tuple[str, int, str], changes: typing.Changes) -> Opti
             line_number=line_number,
             message=message,
             email=contributor['email'],
-            date=contributor['date']
+            date=contributor['date'],
+            author=contributor['author']
         )
 
     return None
@@ -156,20 +162,24 @@ def _output_grouping_by_email_and_file_name(chunk: Iterable[typing.Coverage]) ->
     output("%s:%s %05s %s", file_name, line_number, email, date)
 
 
-def group_by_email_and_file_name(log: Iterable[typing.Coverage]) -> None:
+def group_by_email_and_file_name(
+    log: Iterable[typing.Coverage],
+    contributors: Contributors,
+    halt_on_n_messages: int
+) -> None:
     """
     Group by email and file name, used for coverage.
     """
-    has_found_something = None
+    found_count = 0
     previous_email = None
     previous_file_name = None
     previous_line_number = None
     chunk = []
-    for line in log:
+
+    for line in contributors.filter_coverage(log):
         email = line.contributor['email']
         file_name = line.file_name
         line_number = line.line_number
-        has_found_something = True
 
         if all((
                 (previous_email is None or email == previous_email),
@@ -185,19 +195,24 @@ def group_by_email_and_file_name(log: Iterable[typing.Coverage]) -> None:
         previous_line_number = line_number
         previous_file_name = file_name
 
+        found_count += 1
+
+        if halt_on_n_messages and found_count == halt_on_n_messages:
+            _output_grouping_by_email_and_file_name(chunk)
+            sys.exit(SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES)
+
     if chunk:
         _output_grouping_by_email_and_file_name(chunk)
 
-    if not has_found_something:
+    if not found_count:
         output("::Dry and Clean::")
     else:
-        sys.exit(41)
+        sys.exit(SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED)
 
 
-def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]],
-                 *,
-                 contributors: Iterable[str] = tuple(),
-                 skip_contributors: Iterable[str] = tuple()) -> None:
+def filer_output(log: Iterable[typing.LogLine],
+                 contributors: Contributors,
+                 halt_on_n_messages: int) -> None:
     """
     Filter output by:
     - date range
@@ -209,17 +224,12 @@ def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]],
     # get filters from env, configuration and cli
     filters_chain: List[typing.FiltersType] = []
 
-    has_found_something = False
-    for line in log:
+    found_count = 0
+
+    for line in contributors.filter_log_line(log):
 
         if callable(line):
             filters_chain.append(line)
-            continue
-
-        if contributors and line.email not in contributors:
-            continue
-
-        if skip_contributors and line.email in skip_contributors:
             continue
 
         do_continue = False
@@ -233,9 +243,12 @@ def filer_output(log: Iterable[Union[typing.FiltersType, typing.Lint]],
         output('%s:%d %s ## %s:%s',
                line.file_name, line.line_number, line.message, line.email, line.date)
 
-        has_found_something = True
+        found_count += 1
 
-    if not has_found_something:
+        if halt_on_n_messages and found_count == halt_on_n_messages:
+            sys.exit(SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES)
+
+    if not found_count:
         output("::Dry and Clean::")
     else:
-        sys.exit(41)
+        sys.exit(SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED)

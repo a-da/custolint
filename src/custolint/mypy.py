@@ -69,6 +69,7 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
         if contributor:
 
             return typing.Lint(
+                author='John Snow',
                 file_name=file_name,
                 line_number=int(line_number),
                 message=message.strip(),

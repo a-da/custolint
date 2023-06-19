@@ -16,6 +16,7 @@ author = 'Andrei Danciuc'
 master_doc = "index"
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx_click",
 ]
 
 templates_path = ['_templates']
