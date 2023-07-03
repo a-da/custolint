@@ -6,6 +6,9 @@ from custolint import pylint
 from pathlib import Path
 from unittest import mock
 
+from custolint.contributors import Contributors
+from custolint.generics import SYSTEM_EXIT_CODE_DRY_AND_CLEAN
+
 
 def path_mock(name: str, **kwargs):
     path = mock.Mock(**kwargs)
@@ -141,6 +144,14 @@ def test_filter_test_functions_true(message: str, line_content: bytes):
         True,
         id='filter-a-property'
     ),
+    pytest.param(
+        ' should have "self" as first argument (no-self-argument)',
+        'not_test_module.py',
+        "@validator('name')",
+        "def name_must_contain_space(cls, v):",
+        True,
+        id='filter-pydantic-validation-method'
+    ),
 ))
 def test_filter_no_test_functions_true(message: str,
                                        file_name: str,
@@ -161,3 +172,7 @@ def test_filter_no_test_functions_true(message: str,
         line_number=2,
         cache={}
     ) is is_filtered
+
+
+def test_cli(non_existing_white: Contributors):
+    assert pylint.cli(non_existing_white, 0, False) == SYSTEM_EXIT_CODE_DRY_AND_CLEAN

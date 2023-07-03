@@ -8,7 +8,7 @@ import logging
 
 from pydantic import BaseModel
 
-from custolint import typing
+from custolint import _typing
 
 LOG = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class Contributors(BaseModel):
 
         return False
 
-    def filter_log_line(self, log_lines: Iterable[typing.LogLine]) -> Iterable[typing.LogLine]:
+    def filter_log_line(self, log_lines: Iterable[_typing.LogLine]) -> Iterable[_typing.LogLine]:
         """
         Include or exclude contributors from lint log line
         """
@@ -66,7 +66,7 @@ class Contributors(BaseModel):
             if not self._filter(line.email, line.author):
                 yield line
 
-    def filter_coverage(self, coverages: Iterable[typing.Coverage]) -> Iterable[typing.Coverage]:
+    def filter_coverage(self, coverages: Iterable[_typing.Coverage]) -> Iterable[_typing.Coverage]:
         """
         Include or exclude contributors from coverage report
         """

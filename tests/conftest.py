@@ -8,6 +8,8 @@ from unittest import mock
 import bash
 import pytest
 
+from custolint.contributors import Contributors
+
 
 @pytest.fixture(autouse=True, scope='session')
 def cd_into_root() -> Iterator[None]:
@@ -57,3 +59,16 @@ def _path_mock() -> Callable[..., mock.Mock]:
         return path
 
     return _
+
+
+@pytest.fixture(scope='module', name='contributors')
+def _contributors() -> Contributors:
+    return Contributors.from_cli('', '')
+
+
+@pytest.fixture(scope='module')
+def non_existing_white() -> Contributors:
+    """
+    A contributors which not exists
+    """
+    return Contributors.from_cli('non-existing-white', '')

@@ -4,13 +4,8 @@ from unittest import mock
 
 import pytest
 
-from custolint import generics, typing
+from custolint import generics, _typing
 from custolint.contributors import Contributors
-
-
-@pytest.fixture(scope='module', name='contributors')
-def _contributors() -> Contributors:
-    return Contributors.from_cli('', '')
 
 
 def test_lint_compare_with_main_branch_no_python_files_in_changes():
@@ -62,7 +57,7 @@ def test_lint_compare_with_main_branch_with_python_files_in_changes(patch_bash: 
             filters=(my_dummy_test_filter, )
         )) == [
             my_dummy_test_filter,
-            typing.Lint(
+            _typing.Lint(
                 author='John Snow',
                 file_name='src/custolint/pylint.py',
                 line_number=35,
@@ -70,7 +65,7 @@ def test_lint_compare_with_main_branch_with_python_files_in_changes(patch_bash: 
                 email='a@b.c',
                 date='today'
             ),
-            typing.Lint(
+            _typing.Lint(
                 author='John Snow',
                 file_name='src/custolint/generics.py',
                 line_number=79,
@@ -110,7 +105,7 @@ def test_lint_compare_with_main_branch_similarity(patch_bash: Callable):
             filters=(my_dummy_test_filter, )
         )) == [
             my_dummy_test_filter,
-            typing.Lint(
+            _typing.Lint(
                 author='John Snow',
                 file_name='src/custolint/pylint.py',
                 line_number=35,
@@ -195,7 +190,7 @@ def test_filter_output_has_found_something(
     with pytest.raises(SystemExit, match=str(error_code)):
         generics.filer_output(
             log=[
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name",
                     line_number=i,
@@ -210,6 +205,33 @@ def test_filter_output_has_found_something(
         )
 
 
+@pytest.mark.parametrize("error_code, halt_on_n_messages", (
+    pytest.param(generics.SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED, 0, id='halt_on_0_messages'),
+    pytest.param(generics.SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES, 2, id='halt_on_2_messages'),
+))
+def test_filter_output_has_found_something_without_halt(
+        error_code: int,
+        halt_on_n_messages: int,
+        contributors: Contributors):
+
+    assert generics.filer_output(
+        log=[
+            _typing.Lint(
+                author='John Snow',
+                file_name="file_name",
+                line_number=i,
+                message="message",
+                date='today',
+                email='email'
+            ) for i in range(1, 5)
+
+        ],
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=False,
+    ) == error_code
+
+
 def test_filter_output_with_true_filter():
     def my_dummy_test_filter(*args, **kwargs) -> bool:
         del args, kwargs
@@ -219,7 +241,7 @@ def test_filter_output_with_true_filter():
         generics.filer_output(
             log=[
                 my_dummy_test_filter,
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name",
                     line_number=1,
@@ -227,7 +249,7 @@ def test_filter_output_with_true_filter():
                     date='today',
                     email='email'
                 ),
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name",
                     line_number=1,
@@ -235,7 +257,7 @@ def test_filter_output_with_true_filter():
                     date='today',
                     email='true.contributor'
                 ),
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name",
                     line_number=1,
@@ -260,7 +282,7 @@ def test_filter_output_with_false_filter(contributors: Contributors):
         generics.filer_output(
             log=[
                 my_dummy_test_filter,
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name",
                     line_number=1,
@@ -354,7 +376,7 @@ def test_filter_output_with_contributors(white: str, black: str, expect: Sequenc
 
         generics.filer_output(
             log=[
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name1",
                     line_number=1,
@@ -362,7 +384,7 @@ def test_filter_output_with_contributors(white: str, black: str, expect: Sequenc
                     date='today',
                     email='not.in.contributor'
                 ),
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name2",
                     line_number=1,
@@ -370,7 +392,7 @@ def test_filter_output_with_contributors(white: str, black: str, expect: Sequenc
                     date='today',
                     email='true.contributor'
                 ),
-                typing.Lint(
+                _typing.Lint(
                     author='John Snow',
                     file_name="file_name3",
                     line_number=1,
@@ -397,7 +419,7 @@ def test_filter_output_with_contributors_black_and_white():
     pytest.param((1, 2), '1-2'),
 ))
 def test_output_grouping_by_email_and_file_name(chunk, grouped):
-    contributor = typing.Contributor(
+    contributor = _typing.Contributor(
         author='John Snow',
         email='a@b.c',
         date='today'
@@ -405,7 +427,7 @@ def test_output_grouping_by_email_and_file_name(chunk, grouped):
     with mock.patch.object(generics, 'output') as output:
         generics._output_grouping_by_email_and_file_name(
             [
-                typing.Coverage(
+                _typing.Coverage(
                     contributor=contributor,
                     file_name='a.py',
                     line_number=i
@@ -428,8 +450,8 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
 @pytest.mark.parametrize('log, halt_on_n_messages, expect_output', (
     pytest.param(
         [
-            typing.Coverage(
-                contributor=typing.Contributor(
+            _typing.Coverage(
+                contributor=_typing.Contributor(
                     author='John Snow',
                     email='a@b.c',
                     date='date'
@@ -446,8 +468,8 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
     ),
     pytest.param(
         [
-            typing.Coverage(
-                contributor=typing.Contributor(
+            _typing.Coverage(
+                contributor=_typing.Contributor(
                     author='John Snow',
                     email='a@b.c',
                     date='date'
@@ -456,8 +478,8 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
                 line_number=i,
             ) for i in range(1, 5)
         ] + [
-            typing.Coverage(
-                contributor=typing.Contributor(
+            _typing.Coverage(
+                contributor=_typing.Contributor(
                     author='John Snow',
                     email='a@b.c',
                     date='date'
@@ -475,8 +497,8 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
     ),
     pytest.param(
         [
-            typing.Coverage(
-                contributor=typing.Contributor(
+            _typing.Coverage(
+                contributor=_typing.Contributor(
                     author='John Snow',
                     email='a@b.c',
                     date='date'
@@ -493,8 +515,8 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
     ),
     pytest.param(
         [
-            typing.Coverage(
-                contributor=typing.Contributor(
+            _typing.Coverage(
+                contributor=_typing.Contributor(
                     author='John Snow',
                     email='a@b.c',
                     date='date'
@@ -502,8 +524,8 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
                 file_name='a.py',
                 line_number=1,
             ),
-            typing.Coverage(
-                contributor=typing.Contributor(
+            _typing.Coverage(
+                contributor=_typing.Contributor(
                     author='Tony Stark',
                     email='a@b.c',
                     date='date'
@@ -520,7 +542,7 @@ def test_group_by_email_and_file_name_empty_log(contributors: Contributors):
     ),
 ))
 def test_group_by_email_and_file_name_with_log(
-        log: Sequence[typing.Coverage],
+        log: Sequence[_typing.Coverage],
         halt_on_n_messages: int,
         expect_output: Sequence[str]):
 
@@ -539,3 +561,51 @@ def test_group_by_email_and_file_name_with_log(
         )
 
     assert output.call_args_list == expect_output
+
+
+@pytest.mark.parametrize('log, halt_on_n_messages', (
+    pytest.param(
+        [
+            _typing.Coverage(
+                contributor=_typing.Contributor(
+                    author='John Snow',
+                    email='a@b.c',
+                    date='date'
+                ),
+                file_name='a.py',
+                line_number=i,
+            ) for i in range(1, 5)
+        ],
+        2,
+        id='halt-on-2-messages'
+    ),
+    pytest.param(
+        [
+            _typing.Coverage(
+                contributor=_typing.Contributor(
+                    author='John Snow',
+                    email='a@b.c',
+                    date='date'
+                ),
+                file_name='a.py',
+                line_number=1,
+            )
+        ],
+        0,
+        id='single-line'
+    ),
+))
+def test_group_by_email_and_file_name_no_halt(
+        log: Sequence[_typing.Coverage],
+        halt_on_n_messages: int):
+    error_code = (
+        generics.SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED
+        if not halt_on_n_messages else generics.SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES
+    )
+    with mock.patch.object(generics, 'output'):
+        assert generics.group_by_email_and_file_name(
+            log=log,
+            contributors=Contributors.from_cli('John Snow', ""),
+            halt_on_n_messages=halt_on_n_messages,
+            halt=False
+        ) == error_code

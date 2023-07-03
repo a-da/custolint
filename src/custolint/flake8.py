@@ -33,7 +33,8 @@ from typing import Dict, Iterator, Sequence, Union
 
 from pathlib import Path
 
-from . import env, generics, typing
+from . import _typing, env, generics
+from .contributors import Contributors
 
 
 # pylint: disable=unused-argument
@@ -45,7 +46,7 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
 # pylint: enable=unused-argument
 
 
-def compare_with_main_branch() -> Iterator[Union[typing.Lint, typing.FiltersType]]:
+def compare_with_main_branch() -> Iterator[Union[_typing.Lint, _typing.FiltersType]]:
     """
     Compare all flake8 messages against code different to target branch.
     """
@@ -57,3 +58,8 @@ def compare_with_main_branch() -> Iterator[Union[typing.Lint, typing.FiltersType
         execute_command=command,
         filters=(_filter,)
     )
+
+
+def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) -> int:
+    """Provide interface for flake8 CLI"""
+    return generics.filer_output(compare_with_main_branch(), contributors, halt_on_n_messages, halt)

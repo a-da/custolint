@@ -30,7 +30,7 @@ Override target branch with ``CUSTOLINT_MAIN_BRANCH`` environment variable.
     INFO:custolint.git:Git diff detected 28 filed affected
     INFO:custolint.generics:Execute lint commands 'flake8 --config=config.d/.flake8 {lint_file}' for 18 files ...
 
-    # The main branch is autodetected with ``git remote show origin`` command
+    # The main branch is automatically detected with ``git remote show origin`` command
     $ custolint flake8
     INFO:custolint.git:Compare current branch with 'main' branch
     INFO:custolint.git:Execute git diff command 'git diff origin/main -U0 --diff-filter=ACMRTUXB'

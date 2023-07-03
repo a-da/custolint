@@ -4,7 +4,7 @@ import logging
 from contextlib import nullcontext as does_not_raise
 from unittest import mock
 
-from custolint import git, typing
+from custolint import git, _typing
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -12,7 +12,7 @@ from _pytest.logging import LogCaptureFixture
 
 @mock.patch.object(git, "_blame", side_effect=[
     [
-        typing.Blame(
+        _typing.Blame(
             author='John Snow',
             file_name='care/of/red/potato.py',
             line_number=310,
@@ -21,7 +21,7 @@ from _pytest.logging import LogCaptureFixture
         )
     ],
     [
-        typing.Blame(
+        _typing.Blame(
             author='John Snow',
             file_name='care/of/yellow/banana.py',
             line_number=i,
@@ -124,7 +124,7 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
         ),
         'git blame --line-porcelain -L 310,+1 --  a/b/api/bar.py',
         [
-            typing.Blame(
+            _typing.Blame(
                 author='John Snow',
                 file_name='a/b/api/bar.py',
                 line_number=310,
@@ -179,7 +179,7 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
         ),
         'git blame --line-porcelain -L 1,+3 --  a/b/api/bar.py',
         [
-            typing.Blame(
+            _typing.Blame(
                 author='John Snow',
                 file_name='a/b/api/bar.py',
                 line_number=i,
@@ -300,7 +300,7 @@ def test_get_main_branch_error(
             '',
             0,
             does_not_raise(),
-            ["Be aware that current git version (2, 39, 0) is less than recomended (2, 39, 2)"],
+            ["Be aware that current git version (2, 39, 0) is less than recommended (2, 39, 2)"],
             id='lower'
         ),
         pytest.param(

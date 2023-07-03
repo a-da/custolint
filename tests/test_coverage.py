@@ -2,9 +2,10 @@ from typing import Callable, List
 
 from unittest import mock
 
-from custolint import coverage
-
 import pytest
+
+from custolint import coverage
+from custolint.contributors import Contributors
 
 
 @pytest.mark.parametrize('missing, expect', (
@@ -101,3 +102,8 @@ def test_compare_with_main_branch_error(patch_bash: Callable, caplog):
         list(coverage.compare_with_main_branch('.coverage'))
 
     assert caplog.messages == ['Coverage command failed: some_error']
+
+
+def test_cli(non_existing_white: Contributors):
+    with pytest.raises(SystemExit, match=str(1)):
+        coverage.cli(non_existing_white, 0, '.not-a-coverage')

@@ -119,8 +119,7 @@ From GIT
     $ make update_pip_and_wheel install
 
     # dev
-    $ make update_pip_and_wheel install
-    make update_pip_and_wheel install_dev
+    $ make update_pip_and_wheel install_dev
 
 
 How to run:

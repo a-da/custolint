@@ -11,7 +11,7 @@ from collections import defaultdict
 
 import bash
 
-from . import env, typing
+from . import _typing, env
 
 LOG = logging.getLogger(__name__)
 MINIMUM_GIT_RECOMMEND_VERSION = (2, 39, 2)
@@ -41,22 +41,22 @@ def _autodetect_main_branch() -> str:
     return re.search(r"HEAD branch: (.+)", stdout).group(1)  # type: ignore[union-attr]
 
 
-def _split_as_blame_porcelain(output: str) -> Iterator[typing.Blame]:
+def _split_as_blame_porcelain(output: str) -> Iterator[_typing.Blame]:
     buffer: List[str] = []
 
     # 005661f440bcdfefb2fd41d4e781351471dfb3ef 26 33 1
     head_re = re.compile(r'^[0-9a-f]{40} \d+ \d+')
     for line in output.splitlines():
         if buffer and head_re.search(line):
-            yield typing.Blame.from_porcelain(tuple(buffer))
+            yield _typing.Blame.from_porcelain(tuple(buffer))
             buffer.clear()
 
         buffer.append(line)
 
-    yield typing.Blame.from_porcelain(tuple(buffer))
+    yield _typing.Blame.from_porcelain(tuple(buffer))
 
 
-def _blame(the_line_number: str, file_name: str) -> Iterator[typing.Blame]:
+def _blame(the_line_number: str, file_name: str) -> Iterator[_typing.Blame]:
     """
     Parse blame log to extract: author email, author name, date and  file_name
 
@@ -98,7 +98,7 @@ def _blame(the_line_number: str, file_name: str) -> Iterator[typing.Blame]:
     return _split_as_blame_porcelain(stdout)
 
 
-def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Iterator[typing.Blame]]:
+def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Iterator[_typing.Blame]]:
     # line like +++ b/care/share/calc/_methods2.py
     if diff_line.startswith("+++ "):
         _, file_name = diff_line.split("+++ ", maxsplit=1)
@@ -147,7 +147,7 @@ def _check_git_version() -> Tuple[int, ...]:
     stdout = command.stdout.decode()
     versions = tuple(int(version) for version in stdout.split()[2].split('.'))
     if versions < MINIMUM_GIT_RECOMMEND_VERSION:
-        LOG.warning('Be aware that current git version %r is less than recomended %r',
+        LOG.warning('Be aware that current git version %r is less than recommended %r',
                     versions, MINIMUM_GIT_RECOMMEND_VERSION)
 
     return versions
@@ -185,7 +185,7 @@ def _git_sync(do_pull_rebase: bool, main_branch: str) -> Optional[str]:
     return current_branch_name
 
 
-def changes(do_pull_rebase: bool = True) -> typing.Changes:
+def changes(do_pull_rebase: bool = True) -> _typing.Changes:
     """
     Get diff changes of current branch against master branch and
     return a mapping of affected filename and line numbers
@@ -193,12 +193,12 @@ def changes(do_pull_rebase: bool = True) -> typing.Changes:
     main_branch = _autodetect_main_branch()
     LOG.info("Compare current branch with %r branch", main_branch)
 
-    files: typing.Changes = defaultdict(dict)
+    files: _typing.Changes = defaultdict(dict)
 
     _git_sync(do_pull_rebase, main_branch)
 
     the_file = ""
-    execute_command = f"git diff origin/{main_branch} -U0 --diff-filter=ACMRTUXB"  # noqa: spelling
+    execute_command = f"git diff origin/{main_branch} -U0 --diff-filter=ACMRTUXB"
     LOG.info("Execute git diff command %r", execute_command)
     command = bash.bash(execute_command)
 
@@ -220,8 +220,8 @@ def changes(do_pull_rebase: bool = True) -> typing.Changes:
             the_file = result
             continue
 
-        if isinstance(result, Iterable):  # pragma: no cover
-            typed_result = cast(Iterable[typing.Blame], result)
+        if isinstance(result, Iterable):  # pragma: no cover why is not cover : TODO
+            typed_result = cast(Iterable[_typing.Blame], result)
             for blame in typed_result:
                 change = files[blame.file_name]
 

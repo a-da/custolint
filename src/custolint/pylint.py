@@ -34,7 +34,8 @@ from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
 import re
 from pathlib import Path
 
-from . import env, generics, typing
+from . import _typing, env, generics
+from .contributors import Contributors
 
 
 def _filter_test_function(message: str, line_content: str) -> bool:  # pylint: disable=too-many-return-statements
@@ -95,6 +96,19 @@ def _filter_all_function(message: str,
     return False
 
 
+def _filter_pydantic(message: str,
+                     previous_line_content: Optional[str]) -> bool:
+
+    # :check-description: if validator of pydantic then cls is ok
+    if all(
+            ('@validator(' in (previous_line_content or ''),
+             ' should have "self" as first argument (no-self-argument)' in message
+             )):
+        return True
+
+    return False
+
+
 def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequence[str]]) -> bool:
     """
     Return True if we want to skip the check else False if we want this check
@@ -114,12 +128,16 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
         if do_filter:
             return True
 
+    do_filter = _filter_pydantic(message, previous_line_content)
+    if do_filter:
+        return True
+
     return _filter_all_function(message, line_content, previous_line_content)
 
 
 def compare_with_main_branch(
-        filters: Iterable[typing.FiltersType] = (_filter, )
-) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
+        filters: Iterable[_typing.FiltersType] = (_filter, )
+) -> Iterator[Union[_typing.Lint, _typing.FiltersType]]:
     """
     Compare all pylint messages against code different to target branch.
     """
@@ -131,3 +149,8 @@ def compare_with_main_branch(
         execute_command=command,
         filters=filters
     )
+
+
+def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) -> int:
+    """Provide interface for pylint CLI"""
+    return generics.filer_output(compare_with_main_branch(), contributors, halt_on_n_messages, halt)

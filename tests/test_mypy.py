@@ -6,7 +6,9 @@ from unittest import mock
 
 import pytest
 
-from custolint import mypy, typing
+from custolint import mypy, _typing
+from custolint.contributors import Contributors
+from custolint.generics import SYSTEM_EXIT_CODE_DRY_AND_CLEAN
 
 
 def test_process_line_error():
@@ -22,7 +24,7 @@ def test_process_line_error():
     ),
     pytest.param(
         ['b.py', '42', 'level', 'message b'],
-        typing.Lint(
+        _typing.Lint(
             author='John Snow',
             file_name='b.py',
             line_number=42,
@@ -58,7 +60,7 @@ def test_process_line_error():
         id='skip-success'
     ),
 ))
-def test_process_line_success(fields: Sequence[str], process_result: Optional[typing.Lint]):
+def test_process_line_success(fields: Sequence[str], process_result: Optional[_typing.Lint]):
     assert mypy._process_line(fields, {
         'b.py': {
             42: {
@@ -271,3 +273,7 @@ def test_filter_true_not_cache(message: str, path_kwargs: Any, path_mock: mock.M
     path = path_mock(**path_kwargs)
     # final_content =
     assert mypy._filter(path, message, 1, {})
+
+
+def test_cli(non_existing_white: Contributors):
+    assert mypy.cli(non_existing_white, 0, False) == SYSTEM_EXIT_CODE_DRY_AND_CLEAN

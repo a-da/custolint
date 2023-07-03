@@ -3,10 +3,13 @@
 """
 Command line interface API based on python click library
 """
-from typing import Any, Callable
+from typing import Any, Callable, Dict, Tuple
 
 import functools
 import logging
+import sys
+from configparser import ConfigParser
+from pathlib import Path
 
 import click
 
@@ -62,17 +65,17 @@ def common_params(func: FuncType) -> FuncType:
 
 @common_params
 def _mypy(contributors: Contributors, halt_on_n_messages: int) -> None:
-    generics.filer_output(mypy.compare_with_main_branch(), contributors, halt_on_n_messages)
+    mypy.cli(contributors, halt_on_n_messages)
 
 
 @common_params
 def _pylint(contributors: Contributors, halt_on_n_messages: int) -> None:
-    generics.filer_output(pylint.compare_with_main_branch(), contributors, halt_on_n_messages)
+    pylint.cli(contributors, halt_on_n_messages)
 
 
 @common_params
 def _flake8(contributors: Contributors, halt_on_n_messages: int) -> None:
-    generics.filer_output(flake8.compare_with_main_branch(), contributors, halt_on_n_messages)
+    flake8.cli(contributors, halt_on_n_messages)
 
 
 @click.option('--data-file',
@@ -82,8 +85,69 @@ def _flake8(contributors: Contributors, halt_on_n_messages: int) -> None:
 @common_params
 def _coverage(contributors: Contributors, halt_on_n_messages: int, data_file: click.Path) -> None:
     file_path = click.format_filename(data_file)  # type: ignore[arg-type]
-    generics.group_by_email_and_file_name(
-        log=coverage.compare_with_main_branch(file_path),
-        contributors=contributors,
-        halt_on_n_messages=halt_on_n_messages
-    )
+    coverage.cli(contributors, halt_on_n_messages, file_path)
+
+
+def _parse_cmd_array(value: str) -> Tuple[str, ...]:
+    """
+    >>> _parse_cmd_array('blue, red,green')
+    ('blue', 'red', 'green')
+    >>> _parse_cmd_array(' ')
+    ()
+    """
+    return tuple(i.strip() for i in value.split(',') if i.strip())
+
+
+def _parse_cmd_kwargs(value: str) -> Dict[str, str]:
+    """
+    >>> _parse_cmd_kwargs('data_file:.coverage,a:b')
+    {'data_file': '.coverage', 'a': 'b'}
+    >>> _parse_cmd_kwargs(',')
+    {}
+    """
+    kwargs = {}
+    for _v in _parse_cmd_array(value):
+        key, value = _v.split(':')
+        kwargs[key.strip()] = value.strip()
+
+    return kwargs
+
+
+@click.argument('config', type=click.Path(exists=True))
+@common_params
+def _from_config(contributors: Contributors, halt_on_n_messages: int, config: click.Path) -> None:
+    config_path = Path(config)  # type: ignore[arg-type]
+    if config_path.name == 'setup.cfg':
+        setup_cfg = ConfigParser()
+        setup_cfg.read(config_path)
+        commands = _parse_cmd_array(setup_cfg['tool:custolint']['commands'])
+        halt = setup_cfg['tool:custolint'].getboolean('halt')
+        LOG.info('The following commands: %r will run with halt=%r', commands, halt)
+
+        _globals = globals()
+
+        halt_error_code = generics.SYSTEM_EXIT_CODE_DRY_AND_CLEAN
+        for cmd in commands:
+            try:
+                cmd_kwargs_raw = setup_cfg['tool:custolint'][cmd + '_kwargs']
+            except KeyError:
+                LOG.warning('no %r command configuration, skip ...', cmd + '_kwargs')
+                continue
+
+            cmd_kwargs = _parse_cmd_kwargs(cmd_kwargs_raw)
+
+            LOG.info('---- from_config:%s ------', cmd)
+
+            return_code = getattr(_globals[cmd], 'cli')(
+                contributors,
+                halt_on_n_messages,
+                halt=halt,
+                **cmd_kwargs,
+            )
+
+            if return_code != generics.SYSTEM_EXIT_CODE_DRY_AND_CLEAN:
+                halt_error_code = return_code
+
+        sys.exit(halt_error_code)
+
+    raise NotImplementedError(config_path.name)

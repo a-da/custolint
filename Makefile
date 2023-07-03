@@ -23,19 +23,29 @@ install_dev:
 	pip install -U pip wheel
 	pip install -e ".[dev,deploy_to_pip]"
 
-custolint_validate:
+.PHONY: tests
+tests:
+	pytest tests
+
+coverage_tests:
 	coverage run --rcfile=config.d/.coveragerc -m pytest
+
+custolint_validate:
+	$(MAKE) coverage_tests
 	custolint coverage --data-file=.coverage
-	echo
+	@echo
 	custolint pylint
-	echo
+	@echo
 	custolint flake8
-	echo
+	@echo
 	custolint mypy
 
-validate: custolint_validate
-	pytest tests
+isort:
 	isort src test
+
+validate: custolint_validate
+	$(MAKE) tests
+	$(MAKE) isort
 	pylint src --disable=fixme
 	flake8 src
 	mypy src

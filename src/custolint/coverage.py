@@ -44,7 +44,8 @@ from pathlib import Path
 
 import bash
 
-from . import env, git, typing
+from . import _typing, env, generics, git
+from .contributors import Contributors
 
 LOG = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ LOG = logging.getLogger(__name__)
 def _process_missing_lines(
         file_name: str,
         missing: str,
-        changes: typing.Changes) -> Iterator[typing.Coverage]:
+        changes: _typing.Changes) -> Iterator[_typing.Coverage]:
 
     if "-" in missing:
         # The condition was nether false or nether true, we will just point to the first line
@@ -71,14 +72,14 @@ def _process_missing_lines(
     for line_number in start_end:
         contributor = changes.get(file_name, {}).get(int(line_number))
         if contributor:
-            yield typing.Coverage(
+            yield _typing.Coverage(
                 contributor=contributor,
                 file_name=file_name,
                 line_number=line_number
             )
 
 
-def compare_with_main_branch(coverage_file_location: str) -> Iterator[typing.Coverage]:
+def compare_with_main_branch(coverage_file_location: str) -> Iterator[_typing.Coverage]:
     """
     Apply coverage check on the changes only
     """
@@ -145,3 +146,16 @@ def compare_with_main_branch(coverage_file_location: str) -> Iterator[typing.Cov
                     changes=changes
                 ):
                     yield line
+
+
+def cli(contributors: Contributors,
+        halt_on_n_messages: int,
+        data_file: str,
+        halt: bool = True) -> int:
+    """Provide interface for coverage CLI"""
+    return generics.group_by_email_and_file_name(
+        log=compare_with_main_branch(data_file),
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )

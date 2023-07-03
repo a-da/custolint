@@ -50,12 +50,13 @@ from pathlib import Path
 import bash
 from mypy import errorcodes
 
-from . import env, generics, git, typing
+from . import _typing, env, generics, git
+from .contributors import Contributors
 
 LOG = logging.getLogger(__name__)
 
 
-def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[typing.Lint]:
+def _process_line(fields: Sequence[str], changes: _typing.Changes) -> Optional[_typing.Lint]:
     """
     Process a single line message from MyPy report
     """
@@ -68,7 +69,7 @@ def _process_line(fields: Sequence[str], changes: typing.Changes) -> Optional[ty
         contributor = changes.get(file_name, {}).get(line_number)
         if contributor:
 
-            return typing.Lint(
+            return _typing.Lint(
                 author='John Snow',
                 file_name=file_name,
                 line_number=int(line_number),
@@ -132,7 +133,7 @@ def _filter_test_function_attr_defined(message: str,
     )):
         return True
 
-    # if the line is split check previous lineform
+    # if the line is split check previous line
     if previous_line_content and all((
             f" [{errorcodes.ATTR_DEFINED.code}]" in message,
             mocking_line.search(previous_line_content),
@@ -194,8 +195,8 @@ def _parse_message_line(message: str) -> Sequence[str]:
 
 
 def compare_with_main_branch(
-        filters: Iterable[typing.FiltersType] = (_filter,)
-) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
+        filters: Iterable[_typing.FiltersType] = (_filter,)
+) -> Iterator[Union[_typing.Lint, _typing.FiltersType]]:
     """
     Compare mypy output against target branch
     """
@@ -243,3 +244,8 @@ def compare_with_main_branch(
         results = _process_line(fields, changes)
         if results:
             yield results
+
+
+def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) -> int:
+    """Provide interface for mypy CLI"""
+    return generics.filer_output(compare_with_main_branch(), contributors, halt_on_n_messages, halt)

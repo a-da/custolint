@@ -12,10 +12,11 @@ from pathlib import Path
 
 import bash
 
-from . import git, typing
+from . import _typing, git
 from .contributors import Contributors
 
 LOG = logging.getLogger(__name__)
+SYSTEM_EXIT_CODE_DRY_AND_CLEAN = 0
 SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED = 41
 SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES = 42
 
@@ -61,7 +62,7 @@ def _parse_message_line(stdout_line: str) -> Optional[Tuple[str, int, str]]:
     raise RuntimeError(f"Can not parse lint line {stdout_line!r}")
 
 
-def _process_line(fields: Tuple[str, int, str], changes: typing.Changes) -> Optional[typing.Lint]:
+def _process_line(fields: Tuple[str, int, str], changes: _typing.Changes) -> Optional[_typing.Lint]:
     """
     Process a single line message from PyLint or Flake8 report
     """
@@ -72,7 +73,7 @@ def _process_line(fields: Tuple[str, int, str], changes: typing.Changes) -> Opti
     contributor = changes.get(file_name, {}).get(line_number)
 
     if contributor:
-        return typing.Lint(
+        return _typing.Lint(
             file_name=file_name,
             line_number=line_number,
             message=message,
@@ -86,7 +87,8 @@ def _process_line(fields: Tuple[str, int, str], changes: typing.Changes) -> Opti
 
 def lint_compare_with_main_branch(
         execute_command: str,
-        filters: Iterable[typing.FiltersType]) -> Iterator[Union[typing.Lint, typing.FiltersType]]:
+        filters: Iterable[_typing.FiltersType]
+) -> Iterator[Union[_typing.Lint, _typing.FiltersType]]:
     """
     A common API for pylint and flake8
     """
@@ -139,7 +141,7 @@ def lint_compare_with_main_branch(
             yield results
 
 
-def _output_grouping_by_email_and_file_name(chunk: Iterable[typing.Coverage]) -> None:
+def _output_grouping_by_email_and_file_name(chunk: Iterable[_typing.Coverage]) -> None:
     """
     Output grouping items email and file name
     """
@@ -163,10 +165,11 @@ def _output_grouping_by_email_and_file_name(chunk: Iterable[typing.Coverage]) ->
 
 
 def group_by_email_and_file_name(
-    log: Iterable[typing.Coverage],
+    log: Iterable[_typing.Coverage],
     contributors: Contributors,
-    halt_on_n_messages: int
-) -> None:
+    halt_on_n_messages: int,
+    halt: bool = True
+) -> int:
     """
     Group by email and file name, used for coverage.
     """
@@ -199,20 +202,27 @@ def group_by_email_and_file_name(
 
         if halt_on_n_messages and found_count == halt_on_n_messages:
             _output_grouping_by_email_and_file_name(chunk)
-            sys.exit(SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES)
+            if halt:
+                sys.exit(SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES)
+            return SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES
 
     if chunk:
         _output_grouping_by_email_and_file_name(chunk)
 
     if not found_count:
         output("::Dry and Clean::")
-    else:
+        return SYSTEM_EXIT_CODE_DRY_AND_CLEAN
+
+    if halt:
         sys.exit(SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED)
 
+    return SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED
 
-def filer_output(log: Iterable[typing.LogLine],
+
+def filer_output(log: Iterable[_typing.LogLine],
                  contributors: Contributors,
-                 halt_on_n_messages: int) -> None:
+                 halt_on_n_messages: int,
+                 halt: bool = True) -> int:
     """
     Filter output by:
     - date range
@@ -222,7 +232,7 @@ def filer_output(log: Iterable[typing.LogLine],
     cache: Dict[Path, Sequence[str]] = {}
 
     # get filters from env, configuration and cli
-    filters_chain: List[typing.FiltersType] = []
+    filters_chain: List[_typing.FiltersType] = []
 
     found_count = 0
 
@@ -246,9 +256,15 @@ def filer_output(log: Iterable[typing.LogLine],
         found_count += 1
 
         if halt_on_n_messages and found_count == halt_on_n_messages:
-            sys.exit(SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES)
+            if halt:
+                sys.exit(SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES)
+            return SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES
 
     if not found_count:
         output("::Dry and Clean::")
-    else:
+        return SYSTEM_EXIT_CODE_DRY_AND_CLEAN
+
+    if halt:
         sys.exit(SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED)
+
+    return SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED
