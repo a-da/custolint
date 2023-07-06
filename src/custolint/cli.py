@@ -30,6 +30,8 @@ def common_params(func: FuncType) -> FuncType:
     """Share the same options across all commands"""
     func_name = func.__name__[1:]
 
+    @click.option('--halt', envvar='CUSTOLINT_HALT', default=True, type=bool)
+    @click.option('--color-output', envvar='CUSTOLINT_COLOR_OUTPUT', default=True, type=bool)
     @click.option('--halt-on-N-messages',
                   default=0,
                   type=int,
@@ -50,6 +52,7 @@ def common_params(func: FuncType) -> FuncType:
                 contributors: str,
                 skip_contributors: str,
                 halt_on_n_messages: int,
+                color_output: bool,
                 **kwargs: Any) -> Any:
         try:
             _contributors = Contributors.from_cli(contributors, skip_contributors)
@@ -57,35 +60,58 @@ def common_params(func: FuncType) -> FuncType:
             raise click.UsageError('Mutually exclusion for arguments '
                                    '--skip-contributors and --contributor') from value_error
 
-        log.setup(log_level or env.LOG_LEVEL)
+        log.setup(
+            log_level=log_level or env.LOG_LEVEL,
+            color_output=color_output
+        )
         LOG.info('---- %s ------', func_name)
         return func(_contributors, halt_on_n_messages, **kwargs)
     return wrapper
 
 
 @common_params
-def _mypy(contributors: Contributors, halt_on_n_messages: int) -> None:
-    mypy.cli(contributors, halt_on_n_messages)
+def _mypy(contributors: Contributors, halt_on_n_messages: int, halt: bool) -> None:
+    mypy.cli(
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )
 
 
 @common_params
-def _pylint(contributors: Contributors, halt_on_n_messages: int) -> None:
-    pylint.cli(contributors, halt_on_n_messages)
+def _pylint(contributors: Contributors, halt_on_n_messages: int, halt: bool) -> None:
+    pylint.cli(
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )
 
 
 @common_params
-def _flake8(contributors: Contributors, halt_on_n_messages: int) -> None:
-    flake8.cli(contributors, halt_on_n_messages)
+def _flake8(contributors: Contributors, halt_on_n_messages: int, halt: bool) -> None:
+    flake8.cli(
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )
 
 
-@click.option('--data-file',
-              type=click.Path(exists=True),
-              help="Read coverage data for report generation from this file. "
-                   "Defaults to '.coverage'. [env: COVERAGE_FILE]")
-@common_params
-def _coverage(contributors: Contributors, halt_on_n_messages: int, data_file: click.Path) -> None:
-    file_path = click.format_filename(data_file)  # type: ignore[arg-type]
-    coverage.cli(contributors, halt_on_n_messages, file_path)
+if coverage.coverage:
+    @click.option('--data-file',
+                  type=click.Path(exists=True),
+                  default='.coverage',
+                  help=coverage.coverage.cmdline.Opts.input_datafile.help)  # pylint: disable=no-member
+    @common_params
+    def _coverage(contributors: Contributors,
+                  halt_on_n_messages: int,
+                  halt: bool,
+                  data_file: click.Path) -> None:
+        coverage.cli(
+            contributors=contributors,
+            halt_on_n_messages=halt_on_n_messages,
+            halt=halt,
+            data_file=click.format_filename(data_file)  # type: ignore[arg-type]
+        )
 
 
 def _parse_cmd_array(value: str) -> Tuple[str, ...]:
@@ -115,13 +141,16 @@ def _parse_cmd_kwargs(value: str) -> Dict[str, str]:
 
 @click.argument('config', type=click.Path(exists=True))
 @common_params
-def _from_config(contributors: Contributors, halt_on_n_messages: int, config: click.Path) -> None:
+def _from_config(contributors: Contributors,
+                 halt_on_n_messages: int,
+                 halt: bool,
+                 config: click.Path) -> None:
     config_path = Path(config)  # type: ignore[arg-type]
     if config_path.name == 'setup.cfg':
         setup_cfg = ConfigParser()
         setup_cfg.read(config_path)
         commands = _parse_cmd_array(setup_cfg['tool:custolint']['commands'])
-        halt = setup_cfg['tool:custolint'].getboolean('halt')
+        halt = halt or setup_cfg['tool:custolint'].getboolean('halt')
         LOG.info('The following commands: %r will run with halt=%r', commands, halt)
 
         _globals = globals()
@@ -139,8 +168,8 @@ def _from_config(contributors: Contributors, halt_on_n_messages: int, config: cl
             LOG.info('---- from_config:%s ------', cmd)
 
             return_code = getattr(_globals[cmd], 'cli')(
-                contributors,
-                halt_on_n_messages,
+                contributors=contributors,
+                halt_on_n_messages=halt_on_n_messages,
                 halt=halt,
                 **cmd_kwargs,
             )

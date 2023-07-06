@@ -12,12 +12,12 @@ Your current code-validation pipeline rules may be changed more easily using **c
 
 **Source Code**: `<https://github.com/a-da/custolint>`_.
 
-Custolint implements:
+Custolint add new layer on top of:
 
-- `Pylint <src/custolint/pylint.py>`_
-- `Flake8 <src/custolint/flake8.py>`_
-- `MyPy <src/custolint/mypy.py>`_
-- `Python Coverage <src/custolint/coverage.py>`_
+- `PyLint <https://github.com/PyCQA/pylint>`_
+- `Flake8 <https://github.com/PyCQA/flake8>`_
+- `MyPy <https://github.com/python/mypy>`_
+- `Python Coverage <https://github.com/nedbat/coveragepy>`_
 
 
 Motivation

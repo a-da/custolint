@@ -12,21 +12,14 @@
 
 2. Executing Flake8 linting only on affected file
 
-.. code-block:: bash
-
-    $ flake8 --config-file=config.d/.flake8 file1.py ... file16.py
-    TODO: add a rela example
-    file1.py: message CUSTOLINT_IGNORE_MATCH
-    ...
-    file16.py: message
+.. command-output:: flake8 --config=config.d/.flake8 src/custolint/flake8.py
+    :cwd: ..
+    :returncode: 1
 
 3. Filter all original Flake8 message with custolint rules
 
-.. code-block:: bash
-    :caption: Final Flake8 custolint command
-
-    $ custolint flake8
-    file16.py: message
+.. command-output:: custolint flake8
+    :cwd: ..
 
 """
 from typing import Dict, Iterator, Sequence, Union
@@ -62,4 +55,11 @@ def compare_with_main_branch() -> Iterator[Union[_typing.Lint, _typing.FiltersTy
 
 def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) -> int:
     """Provide interface for flake8 CLI"""
-    return generics.filer_output(compare_with_main_branch(), contributors, halt_on_n_messages, halt)
+    # pylint:disable=duplicate-code
+    return generics.filer_output(
+        log=compare_with_main_branch(),
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )
+

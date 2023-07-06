@@ -12,21 +12,16 @@
 
 2. Executing PyLint typing only on affected file
 
-.. code-block:: bash
 
-    $ pylint --rcfile=config.d/pylintrc file1.py ... file16.py
-    TODO: add a real example
-    teste_file1.py: message missing-function-docstring
-    ...
-    file16.py: message
+.. command-output:: pylint --rcfile=config.d/pylintrc src/custolint/pylint.py
+    :cwd: ..
+    :returncode: 20
+
 
 3. Filter all original PyLint message with custolint rules
 
-.. code-block:: bash
-    :caption: Final PyLint custolint command
-
-    $ custolint pylint
-    file16.py: message
+.. command-output:: custolint pylint
+    :cwd: ..
 
 """
 from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
@@ -132,7 +127,11 @@ def _filter(path: Path, message: str, line_number: int, cache: Dict[Path, Sequen
     if do_filter:
         return True
 
-    return _filter_all_function(message, line_content, previous_line_content)
+    return _filter_all_function(
+        message=message,
+        line_content=line_content,
+        previous_line_content=previous_line_content
+    )
 
 
 def compare_with_main_branch(
@@ -153,4 +152,10 @@ def compare_with_main_branch(
 
 def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) -> int:
     """Provide interface for pylint CLI"""
-    return generics.filer_output(compare_with_main_branch(), contributors, halt_on_n_messages, halt)
+    # pylint:disable=duplicate-code
+    return generics.filer_output(
+        log=compare_with_main_branch(),
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )

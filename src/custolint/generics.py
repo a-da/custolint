@@ -19,8 +19,6 @@ LOG = logging.getLogger(__name__)
 SYSTEM_EXIT_CODE_DRY_AND_CLEAN = 0
 SYSTEM_EXIT_CODE_WITH_ALL_MESSAGES_INCLUDED = 41
 SYSTEM_EXIT_CODE_WITH_HALT_ON_N_MESSAGES = 42
-
-
 TEST_FILES_REGEX = re.compile(r"(^|/)(test_.*|conftest)\.py")
 
 
@@ -244,7 +242,12 @@ def filer_output(log: Iterable[_typing.LogLine],
 
         do_continue = False
         for filter_item in filters_chain:
-            if filter_item(Path(line.file_name), line.message, line.line_number, cache):
+            if filter_item(
+                Path(line.file_name),
+                line.message,
+                line.line_number,
+                cache
+            ):
                 do_continue = True
                 break
         if do_continue:

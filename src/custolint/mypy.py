@@ -1,6 +1,6 @@
 """
 ==============================================================================
-`Mypy: Static Typing for Python <https://github.com/python/mypy>`_ integration
+`MyPy: Static Typing for Python <https://github.com/python/mypy>`_ integration
 ==============================================================================
 
 Logic:
@@ -15,13 +15,10 @@ Logic:
 
 2. Executing Mypy typing only on affected file
 
-.. code-block:: bash
+.. command-output:: mypy --config=config.d/mypy.ini src/custolint/mypy.py
+    :cwd: ..
+    :returncode: 1
 
-    $ mypy --config-file==config.d/.flake8 test_file1.py ... file16.py
-    TODO: add a real example
-    test_file1.py: message function does not return a value
-    ...
-    file16.py: message
 
 .. important:: if no configuration is provided custolint will fallback into strict mode
 
@@ -33,11 +30,9 @@ Logic:
 Filter all original Mypy message with custolint rules
 -----------------------------------------------------
 
-.. code-block:: bash
-    :caption: Final Mypy custolint command
+.. command-output:: custolint mypy
+    :cwd: ..
 
-    $ custolint mypy
-    file16.py: message
 """
 from typing import Dict, Iterable, Iterator, Optional, Sequence, Union
 
@@ -248,4 +243,10 @@ def compare_with_main_branch(
 
 def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) -> int:
     """Provide interface for mypy CLI"""
-    return generics.filer_output(compare_with_main_branch(), contributors, halt_on_n_messages, halt)
+    # pylint:disable=duplicate-code
+    return generics.filer_output(
+        log=compare_with_main_branch(),
+        contributors=contributors,
+        halt_on_n_messages=halt_on_n_messages,
+        halt=halt
+    )

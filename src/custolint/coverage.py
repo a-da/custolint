@@ -1,18 +1,14 @@
 """
 ==========================================================================
-`Python Coverage <https://coverage.readthedocs.io/en/6.4.4/>`_ integration
+`Python Coverage <https://github.com/nedbat/coveragepy>`_ integration
 ==========================================================================
 
 1. Locate uncovered code source lines
 2. If the uncovered code is touched withing changes in current branch.
 3. Show only not tested file name and line to be covered with unittest.
 
-.. code-block:: bash
-    :caption: Final coverage custolint command
-
-    $ custolint coverage .coverage
-    # TODO add sample of log
-    file16.py: message
+.. command-output:: custolint coverage --data-file=.coverage
+    :cwd: ..
 
 .. important::
 
@@ -43,6 +39,14 @@ import sys
 from pathlib import Path
 
 import bash
+
+try:
+    import coverage
+    import coverage.cmdline
+except ImportError:  # pragma: no cover when coverage is installed
+    logging.getLogger(__name__).warning('coverage lib is not installed: pip install coverage')
+    coverage = None  # type: ignore[assignment]
+
 
 from . import _typing, env, generics, git
 from .contributors import Contributors
@@ -136,7 +140,7 @@ def compare_with_main_branch(coverage_file_location: str) -> Iterator[_typing.Co
         # do not show twice the same function/method
 
         # TODO: to move it on top
-        # sort results of diffs as in pycharm
+        # show results of diffs as in pycharm
         if len(fields) > 4 and "Missing" not in fields[-1]:
             missing_coverage_lines = "".join(fields[6:]).split(",")
             for missing in missing_coverage_lines:
@@ -159,3 +163,9 @@ def cli(contributors: Contributors,
         halt_on_n_messages=halt_on_n_messages,
         halt=halt
     )
+
+
+__all__ = [
+    'cli',
+    'coverage',
+]

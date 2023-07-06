@@ -53,7 +53,22 @@ validate: custolint_validate
 
 .PHONY: docs
 docs:
-	$(MAKE) --directory=docs html
+	# save snapshot
+	git stash
+	git stash apply stash@{0}
+
+	# introduce modifications
+	echo '' >> src/custolint/flake8.py
+
+	echo 'CHECK = True' >> src/custolint/mypy.py
+	echo 'CHECK = "False"' >> src/custolint/mypy.py
+
+	echo 'import os' >> src/custolint/pylint.py
+
+	CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0 $(MAKE) --directory=docs html
+
+	# restore snapshot
+	git stash apply stash@{0}
 
 manual_release: deploy_to_pypy
 	git push -u origin main

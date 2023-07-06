@@ -20,7 +20,7 @@ LEVEL_NAMES = (
 )
 
 
-def setup(log_level: Optional[str]) -> None:
+def setup(log_level: Optional[str], color_output: bool) -> None:
     """
     Configure the logging according to custolint features.
     """
@@ -38,7 +38,7 @@ def setup(log_level: Optional[str]) -> None:
         },
         "handlers": {
             "console": {
-                "formatter": "colored",
+                "formatter": "colored" if color_output else "std_out",
                 "class": "logging.StreamHandler",
                 "level": log_level
             }
@@ -51,7 +51,8 @@ def setup(log_level: Optional[str]) -> None:
         },
         "formatters": {
             "std_out": {
-                "format": "%(levelname)s: %(module)s : %(funcName)s: %(message)s",
+                # "format": "%(levelname)s: %(module)s : %(funcName)s: %(message)s",
+                "format": "%(levelname)-8s%(message)s",
                 "datefmt": "%d-%m-%Y %I:%M:%S"
             },
             'colored': {
