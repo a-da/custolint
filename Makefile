@@ -68,7 +68,7 @@ docs:
 	CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0 $(MAKE) --directory=docs html
 
 	# restore snapshot
-	git stash apply stash@{0}
+	# git stash apply stash@{0}
 
 manual_release: deploy_to_pypy
 	git push -u origin main
