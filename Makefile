@@ -54,8 +54,8 @@ validate: custolint_validate
 .PHONY: docs
 docs:
 	# save snapshot
-	git stash
-	git stash apply stash@{0}
+	# git stash
+	# git stash apply stash@{0}
 
 	# introduce modifications
 	echo '' >> src/custolint/flake8.py
