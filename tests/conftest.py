@@ -9,6 +9,7 @@ import bash
 import pytest
 
 from custolint.contributors import Contributors
+from custolint import git
 
 
 @pytest.fixture(autouse=True, scope='session')
@@ -72,3 +73,12 @@ def non_existing_white() -> Contributors:
     A contributors which not exists
     """
     return Contributors.from_cli('non-existing-white', '')
+
+
+@pytest.fixture
+def _autodetect() -> mock.Mock:
+    return mock.patch.object(  # type: ignore[return-value]
+        target=git,
+        attribute=git._autodetect.__qualname__,
+        return_value=(Path('/path/to/git'), "main")
+    )

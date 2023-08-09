@@ -6,7 +6,8 @@ from unittest import mock
 
 import pytest
 
-from custolint import mypy, _typing
+from custolint import _typing  # noqa: protected member
+from custolint import mypy
 from custolint.contributors import Contributors
 from custolint.generics import SYSTEM_EXIT_CODE_DRY_AND_CLEAN
 

@@ -66,9 +66,13 @@ When:
   - ``custolint/git.py``
   - ``custolint/generics.py``
 
-- **Run the linter** tool (pylint, flake8, mypy, coverage ...) with all available feature enables (the configuration have to be placed into  ``config.d/`` folder) only on changed affected files or parse log/result of the linter tool.
+- **Run the linter** tool (pylint, flake8, mypy, coverage ...) with all available feature enables
+  (the configuration have to be placed into  ``config.d/`` folder)
+  only on changed affected files or parse log/result of the linter tool.
 
-- **Match changed code** with the linters output, and consider only the match lines as failed lint criteria. It has to detect that ``custolint/generics.py:filer_output`` need unitest for coverage and ``custolint/git.py:_blame`` introduce a mypy typing issue.
+- **Match changed code** with the linters output, and consider only the match lines as failed lint criteria.
+  It has to detect that ``custolint/generics.py:filer_output`` need unitest for coverage
+  and ``custolint/git.py:_blame`` introduce a mypy typing issue.
 
 Then:
 
@@ -87,7 +91,7 @@ Then:
     INFO:custolint.mypy:MYPY COMPARE WITH 'main' branch
     INFO:custolint.git:Execute git diff command 'git diff origin/main -U0 --diff-filter=ACMRTUXB'
     INFO:custolint.git:Git diff detected 16 filed affected
-    INFO:custolint.mypy:execute command 'mypy --config-file=config.d/mypy.ini @/var/folders/1l/592_sc0s3z1_19nmnr8v2zn00000gq/T/tmpi05fveqg'
+    INFO:custolint.mypy:execute command 'mypy --config-file=config.d/mypy.ini @/tmp/f/59..000gq/T/tmp...'
     tests/test_custolint.py 31 Module has no attribute "bash"  [attr-defined] not.committed.yet 2022-08-31
     tests/test_custolint.py 125 Function is missing a return type annotation  [no-untyped-def] not.committed.yet 2022-08-31
     tests/test_custolint.py 140 Function is missing a return type annotation  [no-untyped-def] not.committed.yet 2022-08-31
@@ -95,31 +99,7 @@ Then:
 Install
 -------
 
-From pip
-
-.. code-block::
-
-    $ make update_pip_and_wheel install
-    pip install custolint
-    Collecting custolint
-      Downloading custolint-...-py3-none-any.whl (8.4 kB)
-    Collecting bash...
-    Installing collected packages: ...
-    Successfully installed ... custolint-...
-
-From GIT
-
-.. code-block::
-
-    git clone https://github.com/a-da/custolint.git
-
-    cd custolint
-
-    # prod
-    $ make update_pip_and_wheel install
-
-    # dev
-    $ make update_pip_and_wheel install_dev
+See `Install dev version <docs/for_developers.rst>`_
 
 
 How to run:
@@ -164,3 +144,6 @@ How to run:
 .. |Documentation| image:: https://img.shields.io/readthedocs/custolint.svg
     :target: https://custolint.readthedocs.io/en/latest/
     :alt: Documentation
+
+
+.. TODO: https://stackoverflow.com/a/13945797/1251677

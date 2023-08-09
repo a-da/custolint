@@ -4,7 +4,9 @@ from unittest import mock
 
 import pytest
 
-from custolint import generics, _typing
+from custolint import _typing  # noqa: protected member
+from custolint import generics
+
 from custolint.contributors import Contributors
 
 

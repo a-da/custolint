@@ -8,11 +8,12 @@ For developers
     git clone https://github.com/a-da/custolint.git
 
 
-2. Install dev version
-
-... the same copy of snippet is available in readme, TODO: unify
+2. Install dev version from CLI
 
 .. code-block:: bash
+
+    # activate your venv
+    # source /path/to/venv/bin/activate
 
     $ make update_pip_and_wheel install_dev
     pip install -e .[dev]
@@ -20,6 +21,8 @@ For developers
     Installing build dependencies ... done
     ...
     Successfully installed custolint-....
+
+Add newly setup venv to your IDE.
 
 3. Validate your changes
 

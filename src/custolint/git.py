@@ -8,6 +8,7 @@ import logging
 import re
 import sys
 from collections import defaultdict
+from pathlib import Path
 
 import bash
 
@@ -17,12 +18,24 @@ LOG = logging.getLogger(__name__)
 MINIMUM_GIT_RECOMMEND_VERSION = (2, 39, 2)
 
 
-def _autodetect_main_branch() -> str:
+def _autodetect() -> Tuple[Path, str]:
     """
-    Autodetect main/default branch name.
+    Git Autodetect for:
+    - root directory
+    - main/default branch name.
 
-    .. important: autodetect can ve override with :py:const:`custolint.env.BRANCH_ENV` os ENV.
+    .. important:
+        Branch name auto-detection can be overridden with
+        :py:const:`custolint.env.BRANCH_ENV` OS env.
     """
+
+    command_root_dir = bash.bash('git rev-parse --show-toplevel')
+    if command_root_dir.code:
+        logging.error('Could not detect root dir: %r', command_root_dir.stderr.decode())
+        sys.exit(command_root_dir.code)
+
+    root_dir = Path(command_root_dir.stdout.decode().strip())
+
     if env.BRANCH_NAME:
         command = bash.bash(f'git branch -r --list origin/{env.BRANCH_NAME}')
         if command.code:
@@ -30,18 +43,22 @@ def _autodetect_main_branch() -> str:
                           env.BRANCH_NAME, env.BRANCH_ENV, command.stderr.decode())
             sys.exit(command.code)
 
-        return env.BRANCH_NAME
+        return root_dir, env.BRANCH_NAME
 
-    command = bash.bash('git remote show origin')
-    if command.code:
-        logging.error('Could not find default/main branch: %r', command.stderr.decode())
-        sys.exit(command.code)
+    command_branch_name = bash.bash('git remote show origin')
+    if command_branch_name.code:
+        logging.error('Could not find default/main branch: %r', command_branch_name.stderr.decode())
+        sys.exit(command_branch_name.code)
 
-    stdout: str = command.stdout.decode()
-    return re.search(r"HEAD branch: (.+)", stdout).group(1)  # type: ignore[union-attr]
+    stdout: str = command_branch_name.stdout.decode()
+    branch_name = re.search(r"HEAD branch: (.+)", stdout).group(1)  # type: ignore[union-attr]
+    return root_dir, branch_name
 
 
 def _split_as_blame_porcelain(output: str) -> Iterator[_typing.Blame]:
+    """
+    Process the output from git blame with porcelain argument
+    """
     buffer: List[str] = []
 
     # 005661f440bcdfefb2fd41d4e781351471dfb3ef 26 33 1
@@ -56,7 +73,7 @@ def _split_as_blame_porcelain(output: str) -> Iterator[_typing.Blame]:
     yield _typing.Blame.from_porcelain(tuple(buffer))
 
 
-def _blame(the_line_number: str, file_name: str) -> Iterator[_typing.Blame]:
+def _blame(root_dir: Path, line_number: str, file_name: str) -> Iterator[_typing.Blame]:
     """
     Parse blame log to extract: author email, author name, date and  file_name
 
@@ -74,18 +91,18 @@ def _blame(the_line_number: str, file_name: str) -> Iterator[_typing.Blame]:
     filename setup.cfg
             bash==0.6
     """
-    if "-" in the_line_number:
-        start, ends = [int(_) for _ in the_line_number.split("-")]
+    if "-" in line_number:
+        start, ends = [int(_) for _ in line_number.split("-")]
         plus_start = ends - start
-    elif "," in the_line_number:
-        start, plus_start = [int(_) for _ in the_line_number.split(",")]
+    elif "," in line_number:
+        start, plus_start = [int(_) for _ in line_number.split(",")]
     else:
         plus_start = 1
-        start = int(the_line_number)
+        start = int(line_number)
 
     # git blame -L 33,+1 --show-email -- helpers/src/banana_sdk/helpers/service_api/metadata.py
     # 6d2056da7 (<saul.goodman@some-domain.com> 2020-06-03 14:11:42 +0200 33)  if event_count > 0:
-    execute_command = f"git blame --line-porcelain -L {start},+{plus_start} --  {file_name}"
+    execute_command = f"git blame --line-porcelain -L {start},+{plus_start} -- {root_dir/file_name}"
     LOG.debug("Execute git blame command: %r", execute_command)
     command = bash.bash(execute_command)
 
@@ -98,7 +115,10 @@ def _blame(the_line_number: str, file_name: str) -> Iterator[_typing.Blame]:
     return _split_as_blame_porcelain(stdout)
 
 
-def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Iterator[_typing.Blame]]:
+def _process_diff_line(
+        root_dir: Path,
+        diff_line: str,
+        file_name: str) -> Union[str, None, Iterator[_typing.Blame]]:
     # line like +++ b/care/share/calc/_methods2.py
     if diff_line.startswith("+++ "):
         _, file_name = diff_line.split("+++ ", maxsplit=1)
@@ -113,7 +133,11 @@ def _process_diff_line(diff_line: str, file_name: str) -> Union[str, None, Itera
     if affected_lines.endswith(",0"):  # the line is deleted and have to be ignored
         return None
 
-    return _blame(affected_lines, file_name)
+    return _blame(
+        root_dir=root_dir,
+        line_number=affected_lines,
+        file_name=file_name
+    )
 
 
 def _current_branch_name() -> str:
@@ -190,7 +214,7 @@ def changes(do_pull_rebase: bool = True) -> _typing.Changes:
     Get diff changes of current branch against master branch and
     return a mapping of affected filename and line numbers
     """
-    main_branch = _autodetect_main_branch()
+    root_dir, main_branch = _autodetect()
     LOG.info("Compare current branch with %r branch", main_branch)
 
     files: _typing.Changes = defaultdict(dict)
@@ -211,7 +235,11 @@ def changes(do_pull_rebase: bool = True) -> _typing.Changes:
 
     for line in stdout.split("\n"):
 
-        result = _process_diff_line(line, the_file)
+        result = _process_diff_line(
+            root_dir=root_dir,
+            diff_line=line,
+            file_name=the_file
+        )
 
         if not result:
             continue

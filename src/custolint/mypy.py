@@ -20,7 +20,7 @@ Logic:
     :returncode: 1
 
 
-.. important:: if no configuration is provided custolint will fallback into strict mode
+.. important:: If no configuration is provided, Custolint will fall back to strict mode.
 
     .. code-block:: bash
 

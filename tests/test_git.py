@@ -1,10 +1,12 @@
+from pathlib import Path
 from typing import Callable, List, Optional
 
 import logging
 from contextlib import nullcontext as does_not_raise
 from unittest import mock
 
-from custolint import git, _typing
+from custolint import _typing  # noqa: protected member
+from custolint import git
 
 import pytest
 from _pytest.logging import LogCaptureFixture
@@ -30,9 +32,9 @@ from _pytest.logging import LogCaptureFixture
         ) for i in [1, 2, 3]
     ]
 ])
-def test_git_changes_success(_, patch_bash: Callable):
+def test_git_changes_success(_, patch_bash: Callable, _autodetect: mock.Mock):
     with \
-            mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
+            _autodetect, \
             patch_bash(
                 stdout="""
                 --- a/care/of/red/potato.py
@@ -55,7 +57,9 @@ def test_git_changes_success(_, patch_bash: Callable):
                 @@ -0,0 +1,146 @@
                 """):
 
-        assert git.changes(do_pull_rebase=False) == {
+        git_changes = git.changes(do_pull_rebase=False)
+
+        assert git_changes == {
             'care/of/red/potato.py': {
                 310: {
                     'author': 'John Snow',
@@ -82,9 +86,9 @@ def test_git_changes_success(_, patch_bash: Callable):
         }
 
 
-def test_git_changes_error(patch_bash: Callable, caplog: LogCaptureFixture):
+def test_git_changes_error(patch_bash: Callable, caplog: LogCaptureFixture, _autodetect: mock.Mock):
     with \
-            mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
+            _autodetect, \
             patch_bash(stderr='no git installed', code=1), \
             pytest.raises(SystemExit, match='1'):
 
@@ -93,15 +97,60 @@ def test_git_changes_error(patch_bash: Callable, caplog: LogCaptureFixture):
     assert caplog.messages == ['Diff command failed: no git installed']
 
 
-def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixture):
+def test_git_changes_debug_enabled(patch_bash: Callable,
+                                   caplog: LogCaptureFixture,
+                                   _autodetect: mock.Mock):
     with \
-            mock.patch.object(git, '_autodetect_main_branch', return_value="main"), \
+            _autodetect, \
             mock.patch.object(git.LOG, 'isEnabledFor', return_value=True), \
             patch_bash(stdout='some message about diff'):
 
         git.changes(do_pull_rebase=False)
 
     assert caplog.messages[2] == 'Git diff output some message about diff'
+
+
+GIT_BLAME_PORCELAIN_1_3_OUTPUT = (
+    "005661f440bcdfefb2fd41d4e781351471dfb3ef 1 1 2\n"
+    "author John Snow\n"
+    "author-mail <john.snow@some-domain.eu>\n"
+    "author-time 1661418629\n"
+    "author-tz +0200\n"
+    "committer John Snow\n"
+    "committer-mail <john.snow@some-domain.eu>\n"
+    "committer-time 1661418629\n"
+    "committer-tz +0200\n"
+    "summary make custolint installable\n"
+    "filename  a/b/api/bar.py\n"
+    "        [metadata]\n"
+
+    "005661f440bcdfefb2fd41d4e781351471dfb3ef 2 2\n"
+    "author John Snow\n"
+    "author-mail <john.snow@some-domain.eu>\n"
+    "author-time 1661418629\n"
+    "author-tz +0200\n"
+    "committer John Snow\n"
+    "committer-mail <john.snow@some-domain.eu>\n"
+    "committer-time 1661418629\n"
+    "committer-tz +0200\n"
+    "summary make custolint installable\n"
+    "filename  a/b/api/bar.py\n"
+    "        name = custolint\n"
+
+    "8a82ba664ee030ce7ed156972f1f5e364fb8f8a3 3 3 1\n"
+    "author John Snow\n"
+    "author-mail <john.snow@some-domain.eu>\n"
+    "author-time 1661418629\n"
+    "author-tz +0200\n"
+    "committer John Snow\n"
+    "committer-mail <john.snow@some-domain.eu>\n"
+    "committer-time 1686748144\n"
+    "committer-tz +0200\n"
+    "summary Version 0.2.1: properly handling cli and add color features\n"
+    "previous 6241256b9d5e8b37788f67bf5743b345c27badd6  a/b/api/bar.py\n"
+    "filename  a/b/api/bar.py\n"
+    "        version = 0.2.1\n"
+)
 
 
 @pytest.mark.parametrize("file_name, the_line_numbers, bash_stdout, git_command, expect", [
@@ -122,7 +171,7 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
             "filename a/b/api/bar.py\n"
             "def foo(subject: str, reply_to: Optional[str] = None):"
         ),
-        'git blame --line-porcelain -L 310,+1 --  a/b/api/bar.py',
+        'git blame --line-porcelain -L 310,+1 -- /path/to/git/a/b/api/bar.py',
         [
             _typing.Blame(
                 author='John Snow',
@@ -136,48 +185,8 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
     ),
     pytest.param(
         'a/b/api/bar.py', ["1,3"],
-        (
-            "005661f440bcdfefb2fd41d4e781351471dfb3ef 1 1 2\n"
-            "author John Snow\n"
-            "author-mail <john.snow@some-domain.eu>\n"
-            "author-time 1661418629\n"
-            "author-tz +0200\n"
-            "committer John Snow\n"
-            "committer-mail <john.snow@some-domain.eu>\n"
-            "committer-time 1661418629\n"
-            "committer-tz +0200\n"
-            "summary make custolint installable\n"
-            "filename  a/b/api/bar.py\n"
-            "        [metadata]\n"
-
-            "005661f440bcdfefb2fd41d4e781351471dfb3ef 2 2\n"
-            "author John Snow\n"
-            "author-mail <john.snow@some-domain.eu>\n"
-            "author-time 1661418629\n"
-            "author-tz +0200\n"
-            "committer John Snow\n"
-            "committer-mail <john.snow@some-domain.eu>\n"
-            "committer-time 1661418629\n"
-            "committer-tz +0200\n"
-            "summary make custolint installable\n"
-            "filename  a/b/api/bar.py\n"
-            "        name = custolint\n"
-
-            "8a82ba664ee030ce7ed156972f1f5e364fb8f8a3 3 3 1\n"
-            "author John Snow\n"
-            "author-mail <john.snow@some-domain.eu>\n"
-            "author-time 1661418629\n"
-            "author-tz +0200\n"
-            "committer John Snow\n"
-            "committer-mail <john.snow@some-domain.eu>\n"
-            "committer-time 1686748144\n"
-            "committer-tz +0200\n"
-            "summary Version 0.2.1: properly handling cli and add color features\n"
-            "previous 6241256b9d5e8b37788f67bf5743b345c27badd6  a/b/api/bar.py\n"
-            "filename  a/b/api/bar.py\n"
-            "        version = 0.2.1\n"
-        ),
-        'git blame --line-porcelain -L 1,+3 --  a/b/api/bar.py',
+        GIT_BLAME_PORCELAIN_1_3_OUTPUT,
+        'git blame --line-porcelain -L 1,+3 -- /path/to/git/a/b/api/bar.py',
         [
             _typing.Blame(
                 author='John Snow',
@@ -188,6 +197,21 @@ def test_git_changes_debug_enabled(patch_bash: Callable, caplog: LogCaptureFixtu
             ) for i in [1, 2, 3]
         ],
         id='two_line_numbers'
+    ),
+    pytest.param(
+        'a/b/api/bar.py', ["1-3"],
+        GIT_BLAME_PORCELAIN_1_3_OUTPUT,
+        'git blame --line-porcelain -L 1,+2 -- /path/to/git/a/b/api/bar.py',
+        [
+            _typing.Blame(
+                author='John Snow',
+                file_name='a/b/api/bar.py',
+                line_number=i,
+                email='john.snow@some-domain.eu',
+                date='2022-08-25'
+            ) for i in [1, 2, 3]
+        ],
+        id='ranges'
     ),
 ])
 def test_blame(file_name: str,  # pylint: disable=too-many-arguments
@@ -200,7 +224,12 @@ def test_blame(file_name: str,  # pylint: disable=too-many-arguments
     for the_line_number in the_line_numbers:
         with patch_bash(stdout=bash_stdout, stderr='',) as bash:
 
-            assert list(git._blame(the_line_number, file_name)) == expect
+            blame = list(git._blame(
+                root_dir=Path('/path/to/git'),
+                line_number=the_line_number,
+                file_name=file_name
+            ))
+            assert blame == expect
             bash.assert_called_once_with(git_command)
 
 
@@ -209,7 +238,11 @@ def test_blame_with_command_error(patch_bash: Callable):
             patch_bash(stderr='some_error', code=1),\
             pytest.raises(SystemExit):
 
-        next(git._blame('1', "a.py"))
+        next(git._blame(
+            root_dir=Path('/path/to/git'),
+            line_number='1',
+            file_name="a.py"
+        ))
 
 
 def test_get_main_branch_default(patch_bash: Callable):
@@ -226,8 +259,15 @@ def test_get_main_branch_default(patch_bash: Callable):
           Local ref configured for 'git push':
             main pushes to main (up to date)
     """) as bash:
+        bash.side_effect = [
+            mock.Mock(
+                stdout=b'/path/to/git',
+                stderr='',
+                code=0
+            )
+        ] + list(bash.side_effect)
 
-        assert git._autodetect_main_branch() == 'main'
+        assert git._autodetect() == (Path('/path/to/git'), 'main')
         bash.assert_called_with('git remote show origin')
 
 
@@ -239,8 +279,15 @@ def test_get_main_branch_override(patch_bash: Callable):
                     $ git branch -r --list origin/main
                     origin/main
                 """) as bash:
+        bash.side_effect = [
+            mock.Mock(
+                stdout=b'/path/to/git',
+                stderr='',
+                code=0
+            )
+        ] + list(bash.side_effect)
 
-        assert git._autodetect_main_branch() == 'main'
+        assert git._autodetect() == (Path('/path/to/git'), 'main')
         bash.assert_called_with('git branch -r --list origin/main')
 
 
@@ -268,12 +315,31 @@ def test_get_main_branch_error(
         patch_bash: Callable):
     with \
             mock.patch.object(git.env, 'BRANCH_NAME', branch_name), \
-            patch_bash(stderr=stderr, code=1), \
+            patch_bash(stderr=stderr, code=1) as bash, \
             pytest.raises(SystemExit):
 
-        git._autodetect_main_branch()
+        bash.side_effect = [
+            mock.Mock(
+                stdout=b'/path/to/git',
+                stderr='',
+                code=0
+            )
+        ] + list(bash.side_effect)
+
+        git._autodetect()
 
     assert caplog.messages == [log_message]
+
+
+def test_autodetect_not_a_git_repository(patch_bash: Callable):
+    with \
+            patch_bash(
+                stderr='fatal: not a git repository (or any of the parent directories): .git',
+                code=128
+            ), \
+            pytest.raises(SystemExit):
+
+        git._autodetect()
 
 
 @pytest.mark.parametrize(

@@ -8,7 +8,7 @@ from pathlib import Path
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'custolint'
-copyright = '2022, Andrei Danciuc'  # pylint: disable=redefined-builtin,invalid-name
+copyright = '2022, Andrei Danciuc'  # pylint: disable=redefined-builtin,invalid-name # noqa: shadow
 author = 'Andrei Danciuc'
 
 # -- General configuration ---------------------------------------------------
