@@ -13,8 +13,7 @@ build:
   commands:
     - pip install -e ".[dev]"
     - make coverage_tests docs
-    - ls -lah $READTHEDOCS_OUTPUT
-    - ls -lah $READTHEDOCS_OUTPUT/html
+    - mkdir $READTHEDOCS_OUTPUT
     - mv docs/_build/html $READTHEDOCS_OUTPUT/html
     #- cd docs && CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0  python -m sphinx -T -E -W --keep-going -b html -d _build/doctrees -D language=en . $READTHEDOCS_OUTPUT/html
 
