@@ -11,9 +11,8 @@ build:
   tools:
     python: "3.11"
   jobs:
-    pre_build:
-      - export CUSTOLINT_COLOR_OUTPUT=0
-      - export CUSTOLINT_HALT=0
+    commands:
+      - CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0  python -m sphinx -T -E -W --keep-going -b html -d _build/doctrees -D language=en . $READTHEDOCS_OUTPUT/html
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
