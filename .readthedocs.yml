@@ -12,7 +12,7 @@ build:
     python: "3.11"
   commands:
     - pip install ".[dev]"
-    - make docs
+    - make coverage_tests docs
     - mv docs $READTHEDOCS_OUTPUT/html
     #- cd docs && CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0  python -m sphinx -T -E -W --keep-going -b html -d _build/doctrees -D language=en . $READTHEDOCS_OUTPUT/html
 
