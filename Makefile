@@ -74,7 +74,7 @@ docs:
 	# -3- save modification to drop them
 	git stash save tmp
 	# -4- return to snapshot version from -1-
-	git stash apply stash@{1}
+	git stash apply stash@{1} || exit 0
 
 	git stash drop stash@{0}
 	git stash drop stash@{0} || exit 0
