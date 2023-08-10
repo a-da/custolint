@@ -43,10 +43,10 @@ def update_readme() -> None:
 
     _readme_rst.write_bytes(_content)
 
-    print('environment !!!!!!!!!!!!!')
-    import os
-    for k, v in os.environ.items():
-        print(f"{k!r}: {v!r}")
+    # print('environment !!!!!!!!!!!!!')
+    # import os
+    # for k, v in os.environ.items():
+    #     print(f"{k!r}: {v!r}")
 
 
 update_readme()

@@ -62,3 +62,4 @@ def cli(contributors: Contributors, halt_on_n_messages: int, halt: bool = True) 
         halt_on_n_messages=halt_on_n_messages,
         halt=halt
     )
+

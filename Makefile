@@ -65,11 +65,11 @@ introduce_chaos:
 docs:
 	# save snapshot
 	git stash save insert_chaos2 # -1- create snapshot
-	git stash apply stash@{0} #-2- return to snapshot version
+	git stash apply stash@{0} || exit 0  #-2- return to snapshot version
 
 	$(MAKE) introduce_chaos
 
-	CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0 $(MAKE) --directory=docs html
+	CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0 SPHINXOPTS='-T -E -W --keep-going' $(MAKE) --directory=docs html
 
 	# -3- save modification to drop them
 	git stash save tmp
