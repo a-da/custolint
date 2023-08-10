@@ -55,7 +55,7 @@ def setup(log_level: str, color_output: bool) -> None:
         "formatters": {
             "std_out": {
                 # "format": "%(levelname)s: %(module)s : %(funcName)s: %(message)s",
-                "format": "%(levelname)-8::s%%(pathname)s:%(lineno)d::(message)s",
+                "format": "%(levelname)-8s:%(pathname)s:%(lineno)d::(message)s",
                 "datefmt": "%d-%m-%Y %I:%M:%S"
             },
             "debug_std_out": {
