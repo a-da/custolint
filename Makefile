@@ -51,12 +51,7 @@ validate: custolint_validate
 	mypy src
 	$(MAKE) docs
 
-.PHONY: docs
-docs:
-	# save snapshot
-	# git stash
-	# git stash apply stash@{0}
-
+introduce_chaos:
 	# introduce modifications
 	echo '' >> src/custolint/flake8.py
 
@@ -65,10 +60,24 @@ docs:
 
 	echo 'import os' >> src/custolint/pylint.py
 
+
+.PHONY: docs
+docs:
+	# save snapshot
+	git stash save insert_chaos2 # -1- create snapshot
+	git stash apply stash@{0} #-2- return to snapshot version
+
+	$(MAKE) introduce_chaos
+
 	CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0 $(MAKE) --directory=docs html
 
-	# restore snapshot
-	# git stash apply stash@{0}
+	# -3- save modification to drop them
+	git stash save tmp
+	# -4- return to snapshot version from -1-
+	git stash apply stash@{1}
+
+	git stash drop stash@{0}
+	git stash drop stash@{0}
 
 manual_release: deploy_to_pypy
 	git push -u origin main

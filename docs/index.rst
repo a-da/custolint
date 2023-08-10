@@ -13,7 +13,6 @@ method, this part of the documentation is for you.
 
    api
    customisations
-   release_notes/index
 
 Miscellaneous Pages
 -------------------
