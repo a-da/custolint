@@ -77,7 +77,7 @@ docs:
 	git stash apply stash@{1}
 
 	git stash drop stash@{0}
-	git stash drop stash@{0}
+	git stash drop stash@{0} || exit 0
 
 manual_release: deploy_to_pypy
 	git push -u origin main
