@@ -1,6 +1,6 @@
 .. COMMENT:
-.. script docs/conf.py will copy
-.. and alter this file into ./docs directory for sphinx documentations scopes
+    script docs/conf.py will copy
+    and alter this file into ./docs directory for sphinx documentations scopes
 
 =========================
 custolint - custom linter

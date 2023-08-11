@@ -6,8 +6,6 @@ Prepare custom logging behaviour:
 import logging
 from logging import config
 
-_CALLED_JUST_ONCE = True
-
 LEVEL_NAMES = (
     'CRITICAL',
     'FATAL',
@@ -22,11 +20,9 @@ LEVEL_NAMES = (
 def setup(log_level: str, color_output: bool) -> None:
     """
     Configure the logging according to custolint features.
-    """
-    global _CALLED_JUST_ONCE  # pylint: disable=global-statement
 
-    if not _CALLED_JUST_ONCE:
-        raise NotImplementedError('Expect log.count to be called just once')
+    .. important:: Should be invoked just once
+    """
 
     value = logging._nameToLevel[log_level]  # noqa: private member # pylint: disable=protected-access
 
@@ -55,7 +51,7 @@ def setup(log_level: str, color_output: bool) -> None:
         "formatters": {
             "std_out": {
                 # "format": "%(levelname)s: %(module)s : %(funcName)s: %(message)s",
-                "format": "%(levelname)-8s:%(pathname)s:%(lineno)d::(message)s",
+                "format": "%(levelname)-8s:%(pathname)s:%(lineno)d: %(message)s",
                 "datefmt": "%d-%m-%Y %I:%M:%S"
             },
             "debug_std_out": {
@@ -76,4 +72,3 @@ def setup(log_level: str, color_output: bool) -> None:
     }
 
     config.dictConfig(log_config)
-    _CALLED_JUST_ONCE = False

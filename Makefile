@@ -69,7 +69,7 @@ docs:
 
 	$(MAKE) introduce_chaos
 
-	CUSTOLINT_COLOR_OUTPUT=0 CUSTOLINT_HALT=0 SPHINXOPTS='-T -E -W --keep-going' $(MAKE) --directory=docs html
+	$(MAKE) --directory=docs html
 
 	# -3- save modification to drop them
 	git stash save tmp
@@ -79,5 +79,5 @@ docs:
 	git stash drop stash@{0}
 	git stash drop stash@{0} || exit 0
 
-manual_release: deploy_to_pypy
+manual_release: deplolsy_to_pypy
 	git push -u origin main
